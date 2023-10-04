@@ -6,12 +6,28 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>606</width>
-    <height>598</height>
+    <width>591</width>
+    <height>648</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>591</width>
+    <height>648</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>591</width>
+    <height>648</height>
+   </size>
+  </property>
   <property name="windowTitle">
-   <string>Fotowoltaka w LP</string>
+   <string>Fotowoltaika w LP</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>images/fotowoltaika.png</normaloff>images/fotowoltaika.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -262,7 +278,7 @@
       <property name="geometry">
        <rect>
         <x>180</x>
-        <y>520</y>
+        <y>570</y>
         <width>333</width>
         <height>41</height>
        </rect>
@@ -270,6 +286,9 @@
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
         <widget class="QPushButton" name="zamknijBtn">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="text">
           <string>Zamknij</string>
          </property>
@@ -277,6 +296,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="resetujBtn">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Wyczyść</string>
          </property>
@@ -293,7 +315,7 @@
         <x>20</x>
         <y>360</y>
         <width>541</width>
-        <height>151</height>
+        <height>191</height>
        </rect>
       </property>
       <property name="font">
@@ -309,7 +331,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>19</y>
+         <y>70</y>
          <width>521</width>
          <height>51</height>
         </rect>
@@ -337,7 +359,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>80</y>
+         <y>130</y>
          <width>521</width>
          <height>41</height>
         </rect>
@@ -361,6 +383,34 @@
         </item>
        </layout>
       </widget>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget_7">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>380</y>
+        <width>521</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_22">
+       <item>
+        <widget class="QPushButton" name="zapisBtn">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="font">
+          <font>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>ZAPISZ WARSTWY PO ANALIZIE</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>

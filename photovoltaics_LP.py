@@ -31,6 +31,13 @@ from .resources import *
 from .photovoltaics_LP_dialog import PhotovoltaicsLPDialog
 import os.path
 
+from PyQt5.uic.properties import QtWidgets
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QToolBar, QApplication, QMessageBox
+from qgis.gui import *
+from qgis.core import *
+
 
 class PhotovoltaicsLP:
     """QGIS Plugin Implementation."""
@@ -43,6 +50,11 @@ class PhotovoltaicsLP:
             application at run time.
         :type iface: QgsInterface
         """
+
+        if Qgis.QGIS_VERSION_INT >= 31000:
+            from .qgis_feed import QgisFeed
+            self.feed = QgisFeed()
+            self.feed.initFeed()
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
@@ -61,7 +73,11 @@ class PhotovoltaicsLP:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&Photovoltaics_LP')
+        self.menu = u'&EnviroSolutions'
+        self.toolbar = self.iface.mainWindow().findChild(QToolBar, 'EnviroSolutions')
+        if not self.toolbar:
+            self.toolbar = self.iface.addToolBar(u'EnviroSolutions')
+            self.toolbar.setObjectName(u'EnviroSolutions')
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -144,9 +160,7 @@ class PhotovoltaicsLP:
         if whats_this is not None:
             action.setWhatsThis(whats_this)
 
-        if add_to_toolbar:
-            # Adds plugin icon to Plugins toolbar
-            self.iface.addToolBarIcon(action)
+      
 
         if add_to_menu:
             self.iface.addPluginToMenu(
@@ -154,6 +168,16 @@ class PhotovoltaicsLP:
                 action)
 
         self.actions.append(action)
+
+
+
+        
+
+        if add_to_toolbar:
+            self.toolbar.addAction(action)
+
+    
+
 
         return action
 
@@ -173,11 +197,16 @@ class PhotovoltaicsLP:
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+
+
         for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(u'&Photovoltaics_LP'),
-                action)
-            self.iface.removeToolBarIcon(action)
+                self.iface.removePluginMenu(
+                    u'&EnviroSolutions',
+                    action)
+                # self.iface.removeToolBarIcon(action)
+                self.toolbar.removeAction(action)
+            # remove the toolbar
+        del self.toolbar
 
 
     def run(self):

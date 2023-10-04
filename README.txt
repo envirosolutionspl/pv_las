@@ -1,32 +1,17 @@
-Plugin Builder Results
+Wtyczka pozwala na wyznaczanie miejsc lokalizacji dla farm fotowoltaicznychna gruntach w zarządzie Lasów .
 
-Your plugin PhotovoltaicsLP was created in:
-    C:/Users/kalina.juszczyk/Desktop/plugin\photovoltaics_lp
+Wyznaczone obszary muszą spełnić następujące warunki:
+- być w zarządzie PGL LP,
+- mieć powierzchnię powyżej 1.5 ha (pojedyncze wydzielenia leśne lub grupa sąsiadujących wydzieleń)
+- być gruntami rolnymi
+- zaliczać się do IV lub poniżej kasy bonitacji gleby
 
-Your QGIS plugin directory is located at:
-    C:/Users/kalina.juszczyk/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins
+Wtyczka pozwla na wygenerowanie wydruku z ukazanymi wyznaczonymi obszarami oraz najbliższymi drogami i liniami energetycznymi, a także wygenerowanie raportu (plik excel)
+z tabelarycznym wykazem obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem.
 
-What's Next:
+Wtyczka umożliwia również zapis warst obszarów, najbliższych dróg i najbiższych linii energetycznych do pliku Shapefile.
 
-  * Copy the entire directory containing your new plugin to the QGIS plugin
-    directory
+Do prawidłowego działania wtyczki niezbędne jest połączenie z internetem oraz zainstalowany program Excel.
 
-  * Compile the resources file using pyrcc5
+Do wtyczki dołączona jest instrukcja obsługi.
 
-  * Run the tests (``make test``)
-
-  * Test the plugin by enabling it in the QGIS plugin manager
-
-  * Customize it by editing the implementation file: ``photovoltaics_LP.py``
-
-  * Create your own custom icon, replacing the default icon.png
-
-  * Modify your user interface by opening PhotovoltaicsLP_dialog_base.ui in Qt Designer
-
-  * You can use the Makefile to compile your Ui and resource files when
-    you make changes. This requires GNU make (gmake)
-
-For more information, see the PyQGIS Developer Cookbook at:
-http://www.qgis.org/pyqgis-cookbook/index.html
-
-(C) 2011-2018 GeoApt LLC - geoapt.com
