@@ -1,4 +1,4 @@
-Wtyczka pozwala na wyznaczanie miejsc lokalizacji dla farm fotowoltaicznychna gruntach w zarządzie Lasów .
+Wtyczka pozwala na wyznaczanie miejsc lokalizacji dla farm fotowoltaicznych na gruntach w zarządzie Lasów Państowych.
 
 Wyznaczone obszary muszą spełnić następujące warunki:
 - być w zarządzie PGL LP,
@@ -6,12 +6,8 @@ Wyznaczone obszary muszą spełnić następujące warunki:
 - być gruntami rolnymi
 - zaliczać się do IV lub poniżej kasy bonitacji gleby
 
-Wtyczka pozwla na wygenerowanie wydruku z ukazanymi wyznaczonymi obszarami oraz najbliższymi drogami i liniami energetycznymi, a także wygenerowanie raportu (plik excel)
-z tabelarycznym wykazem obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem.
+Wtyczka pozwla na wygenerowanie wydruku prezentującego wyznaczone obszary wraz z sąsiadującymi drogami i liniami energetycznymi, jak również wygenerowanie raportu w formie tabelarycznej (plik Excel).
 
-Wtyczka umożliwia również zapis warst obszarów, najbliższych dróg i najbiższych linii energetycznych do pliku Shapefile.
+Wtyczka umożliwia zapisywanie warst wynikowych do pliku shapefile.
 
-Do prawidłowego działania wtyczki niezbędne jest połączenie z internetem oraz zainstalowany program Excel.
-
-Do wtyczki dołączona jest instrukcja obsługi.
-
+Do prawidłowego działania wtyczki niezbędne jest połączenie z internetem oraz zainstalowany program do obsługi arkuszy kalkulacyjnych.
