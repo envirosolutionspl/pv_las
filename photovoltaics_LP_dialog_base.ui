@@ -27,9 +27,6 @@
     <normaloff>images/fotowoltaika.png</normaloff>images/fotowoltaika.png</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
-   <item row="2" column="0">
-    <layout class="QFormLayout" name="formLayout"/>
-   </item>
    <item row="1" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_7">
      <item>
@@ -97,16 +94,19 @@
             <x>0</x>
             <y>0</y>
             <width>396</width>
-            <height>423</height>
+            <height>422</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_2">
-           <item row="1" column="0" colspan="2">
-            <widget class="QGroupBox" name="selectionLayersGB">
+           <item row="3" column="0" colspan="2">
+            <widget class="QGroupBox" name="assigningFieldsGB">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
              <property name="maximumSize">
               <size>
                <width>360</width>
-               <height>110</height>
+               <height>60</height>
               </size>
              </property>
              <property name="font">
@@ -116,9 +116,9 @@
               </font>
              </property>
              <property name="title">
-              <string>Wczytywanie danych</string>
+              <string>Wykonanie analizy</string>
              </property>
-             <widget class="QWidget" name="verticalLayoutWidget">
+             <widget class="QWidget" name="horizontalLayoutWidget_5">
               <property name="geometry">
                <rect>
                 <x>10</x>
@@ -127,35 +127,9 @@
                 <height>31</height>
                </rect>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_2">
+              <layout class="QHBoxLayout" name="horizontalLayout_6">
                <item>
-                <widget class="QPushButton" name="pobierzWarstwyPochodneBtn">
-                 <property name="font">
-                  <font>
-                   <pointsize>8</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>WCZYTAJ WARSTWY POCHODNE</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="horizontalLayoutWidget">
-              <property name="geometry">
-               <rect>
-                <x>10</x>
-                <y>60</y>
-                <width>341</width>
-                <height>31</height>
-               </rect>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_3">
-               <item>
-                <widget class="QPushButton" name="wczytajBdot10kBtn">
+                <widget class="QPushButton" name="analizaBtn">
                  <property name="enabled">
                   <bool>false</bool>
                  </property>
@@ -167,7 +141,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>P0BIERZ I WYŚWIETL DANE BDOT10K</string>
+                  <string>WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP</string>
                  </property>
                 </widget>
                </item>
@@ -250,7 +224,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>ZAPISZ WARSTWY PO ANALIZIE</string>
+                  <string>ZAPISZ WARSTWY</string>
                  </property>
                 </widget>
                </item>
@@ -287,6 +261,80 @@
              </widget>
             </widget>
            </item>
+           <item row="1" column="0" colspan="2">
+            <widget class="QGroupBox" name="selectionLayersGB">
+             <property name="maximumSize">
+              <size>
+               <width>360</width>
+               <height>110</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="title">
+              <string>Wczytywanie danych</string>
+             </property>
+             <widget class="QWidget" name="verticalLayoutWidget">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>20</y>
+                <width>341</width>
+                <height>31</height>
+               </rect>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_2">
+               <item>
+                <widget class="QPushButton" name="pobierzWarstwyPochodneBtn">
+                 <property name="font">
+                  <font>
+                   <pointsize>8</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>WCZYTAJ WARSTWY POCHODNE</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="horizontalLayoutWidget">
+              <property name="geometry">
+               <rect>
+                <x>10</x>
+                <y>60</y>
+                <width>341</width>
+                <height>31</height>
+               </rect>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <widget class="QPushButton" name="wczytajBdot10kBtn">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>8</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>P0BIERZ I WYŚWIETL DANE BDOT10K</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </widget>
+           </item>
            <item row="0" column="0" colspan="2">
             <widget class="QGroupBox" name="functionalDescriptionGB">
              <property name="maximumSize">
@@ -308,20 +356,23 @@
               <property name="geometry">
                <rect>
                 <x>70</x>
-                <y>20</y>
+                <y>30</y>
                 <width>211</width>
-                <height>81</height>
+                <height>71</height>
                </rect>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_4">
+               <property name="spacing">
+                <number>4</number>
+               </property>
                <property name="leftMargin">
-                <number>5</number>
+                <number>2</number>
                </property>
                <property name="topMargin">
-                <number>5</number>
+                <number>2</number>
                </property>
                <property name="rightMargin">
-                <number>5</number>
+                <number>4</number>
                </property>
                <property name="bottomMargin">
                 <number>5</number>
@@ -402,7 +453,7 @@
              <widget class="QPushButton" name="helpBtn">
               <property name="geometry">
                <rect>
-                <x>10</x>
+                <x>30</x>
                 <y>40</y>
                 <width>41</width>
                 <height>41</height>
@@ -421,57 +472,6 @@
              </widget>
             </widget>
            </item>
-           <item row="3" column="0" colspan="2">
-            <widget class="QGroupBox" name="assigningFieldsGB">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>360</width>
-               <height>60</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="title">
-              <string>Wykonanie analizy</string>
-             </property>
-             <widget class="QWidget" name="horizontalLayoutWidget_5">
-              <property name="geometry">
-               <rect>
-                <x>10</x>
-                <y>20</y>
-                <width>341</width>
-                <height>31</height>
-               </rect>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_6">
-               <item>
-                <widget class="QPushButton" name="analizaBtn">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <pointsize>8</pointsize>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </widget>
-           </item>
           </layout>
          </widget>
         </widget>
@@ -483,16 +483,16 @@
    <item row="3" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_8">
      <property name="spacing">
-      <number>5</number>
+      <number>3</number>
      </property>
      <property name="sizeConstraint">
-      <enum>QLayout::SetFixedSize</enum>
+      <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <property name="leftMargin">
       <number>0</number>
      </property>
      <property name="topMargin">
-      <number>0</number>
+      <number>2</number>
      </property>
      <property name="rightMargin">
       <number>5</number>
@@ -501,38 +501,45 @@
       <number>5</number>
      </property>
      <item>
-      <widget class="QLabel" name="label_60">
-       <property name="maximumSize">
-        <size>
-         <width>90</width>
-         <height>90</height>
-        </size>
+      <layout class="QGridLayout" name="gridLayout_7" columnstretch="0">
+       <property name="leftMargin">
+        <number>20</number>
        </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="pixmap">
-        <pixmap>images/lasy_panstwowe-logo-9E441EA471-seeklogo.com.png</pixmap>
-       </property>
-       <property name="scaledContents">
-        <bool>true</bool>
-       </property>
-      </widget>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_60">
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>60</height>
+          </size>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="pixmap">
+          <pixmap>images/lasy_panstwowe-logo-9E441EA471-seeklogo.com.png</pixmap>
+         </property>
+         <property name="scaledContents">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <layout class="QGridLayout" name="gridLayout_6">
        <property name="spacing">
-        <number>6</number>
+        <number>2</number>
        </property>
-       <item row="2" column="0">
-        <widget class="QLabel" name="lbl_email_2">
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_copyrights_2">
          <property name="font">
           <font>
            <pointsize>8</pointsize>
           </font>
          </property>
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://www.envirosolutions.pl/Narzedzia-Automatyzacji-QGIS.pdf&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;ZAPRASZAMY DO WSPÓŁPRACY&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;© 2023 &lt;a href=&quot;http://www.envirosolutions.pl/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;EnviroSolutions Sp. z o.o.&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="textFormat">
           <enum>Qt::RichText</enum>
@@ -548,15 +555,15 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="lbl_copyrights_2">
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_email_2">
          <property name="font">
           <font>
            <pointsize>8</pointsize>
           </font>
          </property>
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;© 2023 &lt;a href=&quot;http://www.envirosolutions.pl/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;EnviroSolutions Sp. z o.o.&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://www.envirosolutions.pl/Narzedzia-Automatyzacji-QGIS.pdf&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;ZAPRASZAMY DO WSPÓŁPRACY&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="textFormat">
           <enum>Qt::RichText</enum>
@@ -626,6 +633,9 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item row="2" column="0">
+    <layout class="QFormLayout" name="formLayout"/>
    </item>
   </layout>
  </widget>
