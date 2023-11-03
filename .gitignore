@@ -1,0 +1,25 @@
+# Python compiled files
+__pycache__/
+*.pyc
+
+# Logs and other generated files
+*.log
+*.pot
+*.pyo
+*.egg-info/
+dist/
+build/
+MANIFEST
+
+# Virtual environment
+venv/
+env/
+*.env
+
+# User-specific IDE settings (PyCharm, VSCode, etc.)
+.idea/
+.vscode/
+
+# OS or editor-generated files
+.DS_Store
+Thumbs.db
