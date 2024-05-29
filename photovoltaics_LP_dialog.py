@@ -356,7 +356,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             logoLP = QgsLayoutItemPicture(layout)
             logoLP.setResizeMode(QgsLayoutItemPicture.Zoom)
             logoLP.setMode(QgsLayoutItemPicture.FormatRaster)
-            logoLP.setPicturePath(':/plugins/photovoltaics_LP/logoLP.png')
+            logoLP.setPicturePath(':/plugins/photovoltaics_LP/icons/logoLP.png')
 
             dim_image_original = [300, 300]
             new_dim = [i * 0.6 for i in dim_image_original]
@@ -367,7 +367,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             logoEnv = QgsLayoutItemPicture(layout)
             logoEnv.setResizeMode(QgsLayoutItemPicture.Zoom)
             logoEnv.setMode(QgsLayoutItemPicture.FormatRaster)
-            logoEnv.setPicturePath(':/plugins/photovoltaics_LP/logoPL.png')
+            logoEnv.setPicturePath(':/plugins/photovoltaics_LP/icons/logoPL.png')
 
             dim_image_original = [1588, 401]
             new_dim = [i * 0.4 for i in dim_image_original]

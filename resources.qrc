@@ -1,21 +1,11 @@
 <RCC>
     <qresource prefix="/plugins/photovoltaics_LP" >
-        <file>icon.png</file>
-    </qresource>
-
-    <qresource prefix="/plugins/photovoltaics_LP" >
-        <file>arrow.png</file>
-    </qresource>
-
-    <qresource prefix="/plugins/photovoltaics_LP" >
-        <file>logoLP.png</file>
-    </qresource>
-
-   <qresource prefix="/plugins/photovoltaics_LP" >
-        <file>logoPL.png</file>
-    </qresource>
-
-   <qresource prefix="/plugins/photovoltaics_LP/" >
+        <file>icons/fotowoltaika.png</file>
+        <file>icons/help.png</file>
+        <file>icons/lasy_panstwowe_logo.png</file>
+        <file>icons/logo.png</file>
+        <file>icons/logoLP.png</file>
+        <file>icons/logoPL.png</file>
         <file>Instrukcja.pdf</file>
  	</qresource>
 </RCC>
