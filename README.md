@@ -13,6 +13,7 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 - oddz_pol.shp
 - ow_pkt.shp
 - nadl_pol.shp <br>
+
 Przykładowy zestaw warstw pochodnych jest rozmieszczony w rozdziale "Releases" na Github.
 
 ### Instrukcja pobrania:
@@ -58,6 +59,7 @@ To use the plugin, you need QGIS version 3.2.3 or higher.
 * oddz_pol.shp
 * ow_pkt.shp
 * nadl_pol.shp <br>
+
 An example set of layers is located in the "Releases" section on Github.
 
 ### Installation instructions:
