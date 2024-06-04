@@ -13,6 +13,7 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 - oddz_pol.shp
 - ow_pkt.shp
 - nadl_pol.shp <br>
+Przykładowy zestaw warstw pochodnych jest rozmieszczony w rozdziale "Releases" na Github.
 
 ### Instrukcja pobrania:
 1. Wtyczkę należy zainstalować w QGISie jako ZIP bądź wgrać pliki wtyczki do lokalizacji C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins.
@@ -57,6 +58,7 @@ To use the plugin, you need QGIS version 3.2.3 or higher.
 * oddz_pol.shp
 * ow_pkt.shp
 * nadl_pol.shp <br>
+An example set of layers is located in the "Releases" section on Github.
 
 ### Installation instructions:
 1. Install the plugin in QGIS as a ZIP file or upload the plugin files to the location C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins.
