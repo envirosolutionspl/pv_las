@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>383</width>
-    <height>563</height>
+    <width>404</width>
+    <height>567</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -43,8 +43,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>381</width>
-        <height>561</height>
+        <width>402</width>
+        <height>565</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -60,6 +60,9 @@
           <string>Opis funkcjonalności </string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <property name="leftMargin">
            <number>6</number>
           </property>
@@ -170,8 +173,8 @@
            <widget class="QLabel" name="label_6">
             <property name="maximumSize">
              <size>
-              <width>40</width>
-              <height>40</height>
+              <width>45</width>
+              <height>45</height>
              </size>
             </property>
             <property name="text">
@@ -574,8 +577,8 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>70</width>
-               <height>80</height>
+               <width>60</width>
+               <height>60</height>
               </size>
              </property>
              <property name="font">
@@ -590,13 +593,13 @@
               <string/>
              </property>
              <property name="pixmap">
-              <pixmap>icons/logo.png</pixmap>
+              <pixmap>icons/logo.svg</pixmap>
              </property>
              <property name="scaledContents">
               <bool>true</bool>
              </property>
              <property name="margin">
-              <number>10</number>
+              <number>0</number>
              </property>
             </widget>
            </item>
