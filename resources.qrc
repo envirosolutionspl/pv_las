@@ -4,7 +4,8 @@
         <file>icons/logo.svg</file>
 		<file>icons/fotowoltaika.svg</file>
         <file>icons/logoLP.png</file>
-        <file>Instrukcja.pdf</file>
 		<file>icons/logoPL.png</file>
+		<file>icons/arrow.png</file>
+        <file>Instrukcja.pdf</file>
  	</qresource>
 </RCC>
