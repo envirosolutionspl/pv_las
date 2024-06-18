@@ -380,7 +380,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             arrow = QgsLayoutItemPicture(layout)
             arrow.setResizeMode(QgsLayoutItemPicture.Zoom)
             arrow.setMode(QgsLayoutItemPicture.FormatRaster)
-            arrow.setPicturePath(':/plugins/photovoltaics_LP/arrow.png')
+            arrow.setPicturePath(':/plugins/photovoltaics_LP/icons/arrow.png')
 
             dim_image_original = [949, 893]
             new_dim = [i * 0.6 for i in dim_image_original]
