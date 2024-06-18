@@ -6,8 +6,8 @@
 name=Fotowoltaika LP
 qgisMinimumVersion=3.2
 description=Wyznaczanie lokalizacji pod farmy fotowoltaiczne LP
-version=1.0
-author=EnviroSolutions Sp. z o. o.
+version=1.0.1
+author=EnviroSolutions Sp. z o.o.
 email=office@envirosolutions.pl
 
 about=Wtyczka pozwoli na wyznaczenie odpowiednich terenów będących w zarządzie PGL LP pod farmy fotowoltaiczne
@@ -20,14 +20,17 @@ repository=https://github.com/envirosolutionspl/pv_las
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=
+  Wersja 1.0.1
+    * Zmiana ikony wtyczki i ES
+    * Poprawa UI wtyczki
 
 # Tags are comma separated with spaces allowed
-tags=python, EnviroSolutions, Lasy Państwowe, fotowoltaik
+tags=python, EnviroSolutions, Lasy Państwowe, fotowoltaika
 
 homepage=https://github.com/envirosolutionspl/pv_las
 category=Plugins
-icon=icon.png
+icon=fotowoltaika.svg
 # experimental flag
 experimental=False
 
