@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>433</width>
+    <width>442</width>
     <height>567</height>
    </rect>
   </property>
@@ -43,7 +43,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>431</width>
+        <width>440</width>
         <height>565</height>
        </rect>
       </property>
@@ -488,6 +488,9 @@
              <property name="scaledContents">
               <bool>true</bool>
              </property>
+             <property name="margin">
+              <number>4</number>
+             </property>
             </widget>
            </item>
           </layout>
@@ -629,4 +632,21 @@
  </widget>
  <resources/>
  <connections/>
+ <designerdata>
+  <property name="gridDeltaX">
+   <number>10</number>
+  </property>
+  <property name="gridDeltaY">
+   <number>10</number>
+  </property>
+  <property name="gridSnapX">
+   <bool>true</bool>
+  </property>
+  <property name="gridSnapY">
+   <bool>true</bool>
+  </property>
+  <property name="gridVisible">
+   <bool>true</bool>
+  </property>
+ </designerdata>
 </ui>
