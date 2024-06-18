@@ -60,6 +60,8 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
 
+        self.label_60.setMargin(4)
+
         self.wydzielenia = None
         self.wydzielenia_opisy = None
         self.drogi_lesne = None

@@ -38,6 +38,10 @@ from qgis.PyQt.QtWidgets import QAction, QToolBar, QApplication, QMessageBox
 from qgis.gui import *
 from qgis.core import *
 
+"""Wersja wtyczki"""
+plugin_version = '1.0.1'
+plugin_name = 'Fotowoltaika LP'
+
 
 class PhotovoltaicsLP:
     """QGIS Plugin Implementation."""
@@ -56,6 +60,9 @@ class PhotovoltaicsLP:
             self.feed.initFeed()
         # Save reference to the QGIS interface
         self.iface = iface
+
+        self.dlg = PhotovoltaicsLPDialog()
+        
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -195,6 +202,9 @@ class PhotovoltaicsLP:
         # will be set False in run()
         self.first_start = True
 
+        # informacje o wersji
+        self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
+        self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -217,7 +227,6 @@ class PhotovoltaicsLP:
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
-            self.dlg = PhotovoltaicsLPDialog()
 
         # show the dialog
         self.dlg.show()
