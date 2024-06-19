@@ -31,9 +31,9 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 5. Po załadowaniu ww. warstw można przystąpić do wykonania analizy na potrzeby farm fotowoltaicznych. Należy kliknąć przycisk "WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP". Analiza może potrwać kilka minut.
 6. Do projektu zostaną załadowane warstwy z wyznaczonymi obszarami, a także warstwy z najbliższymi liniami energetycznymi i najbliższymi drogami.
 7. Możliwości wtyczki:
-    1. Wtyczka pozwala na zapisanie warstw z wyznaczonymi obszarami, najbliższymi liniami energetycznymi i najbliższymi drogami do pliku Shapefile po kliknięciu przycisku "ZAPISZ WARSTWY" i wybraniu lokalizacji zapisu w oknie dialogowym.
-    2. Wtyczka umożliwia również wygenerowanie dokumentu w formacie PDF lub obrazu rastrowego po kliknięciu przycisku "GENERUJ WYDRUK" i zapisaniu go w lokalizacji wybranej w oknie dialogowym.
-    3. Możliwe jest również wygenerowanie raportu (plik XLSX) z tabelarycznym wykazem wyznaczonych obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem. W tym celu należy kliknąć przycisk "GENERUJ RAPORT".
+    - Wtyczka pozwala na zapisanie warstw z wyznaczonymi obszarami, najbliższymi liniami energetycznymi i najbliższymi drogami do pliku Shapefile po kliknięciu przycisku "ZAPISZ WARSTWY" i wybraniu lokalizacji zapisu w oknie dialogowym.
+    - Wtyczka umożliwia również wygenerowanie dokumentu w formacie PDF lub obrazu rastrowego po kliknięciu przycisku "GENERUJ WYDRUK" i zapisaniu go w lokalizacji wybranej w oknie dialogowym.
+    - Możliwe jest również wygenerowanie raportu (plik XLSX) z tabelarycznym wykazem wyznaczonych obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem. W tym celu należy kliknąć przycisk "GENERUJ RAPORT".
 8. Na każdym etapie można wyczyścić dane za pomocą przycisku "Wyczyść".
 
 ### Uwagi
@@ -77,9 +77,9 @@ An example set of layers is located in the "Releases" section on Github.
 5. Once the layers are loaded, you can proceed to perform an analysis for photovoltaic farms. Click the "WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP" button. The analysis may take a few minutes.
 6. Layers with designated areas and the nearest power lines and roads will be added to the project.
 7. Plugin capabilities:
-   1. The plugin allows you to save layers with designated areas, nearest power lines, and nearest roads to a Shapefile by clicking the "ZAPISZ WARSTWY" button and selecting the save location in the dialog box.
-   2. Additionally, the plugin allows you to generate a document in PDF format or a raster image by clicking the "GENERUJ WYDRUK" button and saving it in the chosen location.
-   3. You can also generate a report (XLSX file) with a tabular list of designated areas and distances from the nearest roads and power lines, along with their types. To do this, click the "GENERUJ RAPORT" button.
+   - The plugin allows you to save layers with designated areas, nearest power lines, and nearest roads to a Shapefile by clicking the "ZAPISZ WARSTWY" button and selecting the save location in the dialog box.
+   - Additionally, the plugin allows you to generate a document in PDF format or a raster image by clicking the "GENERUJ WYDRUK" button and saving it in the chosen location.
+   - You can also generate a report (XLSX file) with a tabular list of designated areas and distances from the nearest roads and power lines, along with their types. To do this, click the "GENERUJ RAPORT" button.
 8. At any stage, you can clear data using the “Wyczyść” button.
 
 ### Notes
