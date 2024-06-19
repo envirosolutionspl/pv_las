@@ -26,7 +26,7 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 ### Instrukcja użytkowania:
 1. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "WCZYTAJ WARSTWY POCHODNE". Otworzy się okno wyboru folderu zip z warstwami pochodnymi dla danego nadleśnictwa, pobranym z Systemu Informatycznego Lasów Państwowych.
 2. Po wybraniu folderu zip z warstwami pochodnymi do projektu zostaną załadowane warstwy z drogami leśnymi i wydzieleniami leśnymi danego nadleśnictwa, a także mapa bazowa – Rastrowa Mapa Topograficzna Polski.
-3. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "POBIERZ I WYŚWITL DANE BDOT10K".
+3. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "POBIERZ I WYŚWIETL DANE BDOT10K".
 4. Do projektu zostanie załadowana warstwa linii energetycznych i dróg z BDOT10k dla powiatów, w obrębie których znajdują się wydzielenia leśne danego nadleśnictwa. Ładowanie danych może potrwać kilka minut.
 5. Po załadowaniu ww. warstw można przystąpić do wykonania analizy na potrzeby farm fotowoltaicznych. Należy kliknąć przycisk "WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP". Analiza może potrwać kilka minut.
 6. Do projektu zostaną załadowane warstwy z wyznaczonymi obszarami, a także warstwy z najbliższymi liniami energetycznymi i najbliższymi drogami.
@@ -72,7 +72,7 @@ An example set of layers is located in the "Releases" section on Github.
 ### Usage instructions:
 1. In the plugin window, under the Data Loading section, click the "WCZYTAJ WARSTWY POCHODNE" button. A window will open to select the zip folder containing derivative layers for the specific forest district, obtained from the State Forests Information System.
 2. After selecting the zip folder with layers, the project will load layers with forest roads and forest compartments for the given forest district, as well as the base map – Raster Topographic Map of Poland.
-3. In the plugin window, under the Data Loading section, click the "POBIERZ I WYŚWITL DANE BDOT10K" button.
+3. In the plugin window, under the Data Loading section, click the "POBIERZ I WYŚWIETL DANE BDOT10K" button.
 4. The BDOT10K layers for power lines and roads within the counties containing forest compartments for the given forest district will be loaded into the project. Data loading may take a few minutes.
 5. Once the layers are loaded, you can proceed to perform an analysis for photovoltaic farms. Click the "WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP" button. The analysis may take a few minutes.
 6. Layers with designated areas and the nearest power lines and roads will be added to the project.
