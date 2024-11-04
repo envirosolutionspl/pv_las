@@ -42,7 +42,7 @@ from qgis.gui import *
 from qgis.core import *
 
 """Wersja wtyczki"""
-plugin_version = '1.0.2'
+plugin_version = '1.0.3'
 plugin_name = 'Fotowoltaika LP'
 
 
