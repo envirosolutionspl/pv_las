@@ -55,7 +55,7 @@ class QgisFeed:
         """
         Function registers QGIS Feed
         """
-        print("New url: ",self.industry_url_short)
+        
         QgsMessageLog.logMessage('Registering feed')
         for key in self.s.allKeys():
             if self.envirosolutionsFeedPattern_old.match(key) or self.envirosolutionsFeedPattern_new.match(key):
@@ -73,7 +73,8 @@ class QgisFeed:
                 # sprawdz czy jest odpowiadajacy w qgis
                 if self.s.contains(re.sub(r'(\d+)', r'9999\1', key.replace(self.industry_url_short, 'httpsfeedqgisorg'))):
                     self.s.remove(key)
-                self.s.remove(key)
+                #self.s.remove(key)
+        self.s.sync()
 
     def checkIsFetchTime(self):
         """
