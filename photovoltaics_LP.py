@@ -61,16 +61,14 @@ class PhotovoltaicsLP:
 
         if Qgis.QGIS_VERSION_INT >= 31000:
             from .qgis_feed import QgisFeed
-
-            #qgis feed
             self.selected_industry = self.settings.value("selected_industry", None)
             show_dialog = self.settings.value("showDialog", True, type=bool)
-            
+
             if self.selected_industry is None and show_dialog:
                 self.showBranchSelectionDialog()
-        
+
             select_indust_session = self.settings.value('selected_industry')
-            
+
             self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
             self.feed.initFeed()
 
@@ -262,4 +260,4 @@ class PhotovoltaicsLP:
             
             #Zapis w QGIS3.ini
             self.settings.setValue("selected_industry", self.selected_branch)  
-            self.settings.setValue("showDialog", False) 
+            self.settings.setValue("showDialog", False)
