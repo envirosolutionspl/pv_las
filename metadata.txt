@@ -23,6 +23,7 @@ hasProcessingProvider=no
 changelog=
   Wersja 1.0.3
     * Zmiana QGIS Feed
+    * Zmiana minimalnej wersji QGIS na 3.22
 #  Wersja 1.0.2
 #    * Zmiana ikony wtyczki
 #  Wersja 1.0.1
