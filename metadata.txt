@@ -4,7 +4,7 @@
 
 [general]
 name=Fotowoltaika LP
-qgisMinimumVersion=3.22
+qgisMinimumVersion=3.28
 description=Wyznaczanie lokalizacji pod farmy fotowoltaiczne LP
 version=1.0.3
 author=EnviroSolutions Sp. z o.o.
