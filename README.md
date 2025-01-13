@@ -39,6 +39,7 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 ### Uwagi
 - Ikona ze znakiem zapytania w oknie wtyczki pozwala na pobranie instrukcji obsługi wtyczki w formacie PDF.
 - Do prawidłowego działania wtyczki niezbędne jest połączenie z Internetem oraz zainstalowany program do obsługi arkuszy kalkulacyjnych.
+- Rekomendowane wersje QGIS: 3.34.4.
 
 #### Wyznaczone obszary muszą spełnić następujące warunki:
 - być w zarządzie PGL LP,
@@ -85,6 +86,7 @@ An example set of layers is located in the "Releases" section on Github.
 ### Notes
 - The question mark icon in the plugin window allows you to download the user guide in PDF format.
 - For the plugin to work correctly, an internet connection and spreadsheet editing software must be installed.
+- Recomended version of QGIS: 3.45.4.
 
 #### Designated areas must meet the following criteria:
 - Managed by PGL LP,
