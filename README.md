@@ -86,7 +86,7 @@ An example set of layers is located in the "Releases" section on Github.
 ### Notes
 - The question mark icon in the plugin window allows you to download the user guide in PDF format.
 - For the plugin to work correctly, an internet connection and spreadsheet editing software must be installed.
-- Recomended version of QGIS: 3.45.4.
+- Recomended version of QGIS: 3.34.4.
 
 #### Designated areas must meet the following criteria:
 - Managed by PGL LP,
