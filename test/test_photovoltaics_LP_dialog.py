@@ -10,7 +10,7 @@
 
 __author__ = 'office@envirosolutions.pl'
 __date__ = '2023-09-04'
-__copyright__ = 'Copyright 2023, EnviroSolutions Sp. z o. o.'
+__copyright__ = 'Copyright 2025, EnviroSolutions Sp. z o. o.'
 
 import unittest
 
