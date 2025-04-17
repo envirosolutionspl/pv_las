@@ -5,7 +5,7 @@
 Wtyczka pozwala na wyznaczanie miejsc lokalizacji dla farm fotowoltaicznych na gruntach w zarządzie Lasów Państwowych.
 
 ### Wymagania:
-Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.22 lub wyższej.
+Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji QGIS 3.28.0 lub wyższej.
 
 #### Warstwy pochodne niezbędne do działania wtyczki:
 - pow_pol.shp
@@ -39,6 +39,7 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 ### Uwagi
 - Ikona ze znakiem zapytania w oknie wtyczki pozwala na pobranie instrukcji obsługi wtyczki w formacie PDF.
 - Do prawidłowego działania wtyczki niezbędne jest połączenie z Internetem oraz zainstalowany program do obsługi arkuszy kalkulacyjnych.
+- Rekomendowane wersje QGIS: 3.34.4.
 
 #### Wyznaczone obszary muszą spełnić następujące warunki:
 - być w zarządzie PGL LP,
@@ -51,7 +52,7 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 The plugin allows for the identification of suitable locations for photovoltaic power stations on land managed by the State Forests (PGL LP).
 
 ### Requirements:
-To use the plugin, you need QGIS version 3.22 or higher.
+To use the plugin, you need QGIS version 3.28.0 or higher.
 
 #### Necessary layers for the plugin:
 - pow_pol.shp
@@ -85,6 +86,7 @@ An example set of layers is located in the "Releases" section on Github.
 ### Notes
 - The question mark icon in the plugin window allows you to download the user guide in PDF format.
 - For the plugin to work correctly, an internet connection and spreadsheet editing software must be installed.
+- Recomended version of QGIS: 3.34.4.
 
 #### Designated areas must meet the following criteria:
 - Managed by PGL LP,

@@ -8,7 +8,7 @@
                               -------------------
         begin                : 2023-09-04
         git sha              : $Format:%H$
-        copyright            : (C) 2023 by EnviroSolutions Sp. z o. o.
+        copyright            : (C) 2025 by EnviroSolutions Sp. z o. o.
         email                : office@envirosolutions.pl
  ***************************************************************************/
 

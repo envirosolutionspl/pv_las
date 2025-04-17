@@ -8,7 +8,7 @@
                              -------------------
         begin                : 2023-09-04
         git sha              : $Format:%H$
-        copyright            : (C) 2023 by EnviroSolutions Sp. z o. o.
+        copyright            : (C) 2025 by EnviroSolutions Sp. z o. o.
         email                : office@envirosolutions.pl
  ***************************************************************************/
 
@@ -344,12 +344,15 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             layout.initializeDefaults()
             map = QgsLayoutItemMap(layout)
             map.setRect(20, 20, 20, 20)
+            extent = QgsRectangle()
+            nadlesnictwo_geom = next(self.nadlesnictwo.getFeatures(), None)
+            if nadlesnictwo_geom:
+                extent = nadlesnictwo_geom.geometry().boundingBox()
+            extent.scale(1.6) 
             ms = QgsMapSettings()
             ms.setLayers(warstwy)  
-            rect = QgsRectangle(ms.fullExtent())
-            rect.scale(1.5)
-            ms.setExtent(rect)
-            map.setExtent(rect)
+            ms.setExtent(extent)
+            map.setExtent(extent)
             map.setBackgroundColor(QColor(255,255,255))
             layout.addLayoutItem(map)
             map.attemptMove(QgsLayoutPoint(20, 45, QgsUnitTypes.LayoutMillimeters))
