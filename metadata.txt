@@ -22,10 +22,10 @@ hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
   Wersja 1.0.4
-    * Zmiana minimalnej wersji QGIS na 3.28
+    * Aktualizacja stopki wtyczki
 #  Wersja 1.0.3
-#   * Zmiana QGIS Feed
-#   * Zmiana minimalnej wersji QGIS na 3.22
+#    * Zmiana QGIS Feed
+#    * Zmiana minimalnej wersji QGIS na 3.22
 #  Wersja 1.0.2
 #    * Zmiana ikony wtyczki
 #  Wersja 1.0.1
