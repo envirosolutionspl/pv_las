@@ -23,24 +23,22 @@
 """
 
 import os
+import tempfile
+import zipfile
 from pathlib import Path
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
-from qgis.core import *
-from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor, QFont
+from qgis.utils import iface
+from qgis.core import * 
 
+from .modules.daneBdotkTask import PobierzBdotTask
+from .modules.analizaTask import AnalizaTask
 
-import tempfile
-import zipfile
-
-from .daneBdotkTask import PobierzBdotTask
-from .analizaTask import AnalizaTask
-
-from .zapisz_xlsx import ZapiszXLSX
-from .generuj_raport import GenerujRaport
+from .modules.zapisz_xlsx import ZapiszXLSX
+from .modules.generuj_raport import GenerujRaport
 from . import utils
 
 
@@ -92,7 +90,8 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
     def dodaj_mape_bazowa(self):
-        """dodaje mapę bazową
+        """
+        dodaje mapę bazową
         """
    
         wmts_url = (

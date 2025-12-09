@@ -1,6 +1,8 @@
-from qgis.core import QgsCoordinateReferenceSystem
-import processing, sys, os
-from qgis.core import *
+import sys
+import os
+import processing
+
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
 
 
 def onlyNewest(dataFilelist):

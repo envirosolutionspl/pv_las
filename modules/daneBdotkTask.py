@@ -8,11 +8,15 @@ import io
 import os
 import processing
 
-from qgis.core import *
-
 from qgis.core import (
-    QgsApplication, QgsTask, QgsMessageLog, Qgis
-    )
+    QgsTask, 
+    QgsMessageLog, 
+    Qgis, 
+    QgsVectorLayer, 
+    QgsLineSymbol, 
+    QgsSingleSymbolRenderer, 
+    QgsProject
+)
 
 class PobierzBdotTask(QgsTask):
    

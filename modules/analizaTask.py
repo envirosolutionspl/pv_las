@@ -1,20 +1,33 @@
 # -*- coding: utf-8 -*-
 
 import processing
+from operator import itemgetter
 
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtWidgets import QMessageBox
-
-
-from operator import itemgetter
-
-from qgis.core import *
+from qgis.PyQt.QtCore import QMetaType
 
 from qgis.core import (
-    QgsApplication, QgsTask, QgsMessageLog, Qgis
-    )
-
-from qgis.PyQt.QtCore import QVariant
+    QgsTask, 
+    QgsMessageLog, 
+    Qgis, 
+    QgsVectorLayer, 
+    QgsField, 
+    QgsProject, 
+    QgsSingleSymbolRenderer, 
+    QgsFillSymbol, 
+    QgsLineSymbol, 
+    QgsGeometry, 
+    QgsPointXY, 
+    QgsPoint, 
+    QgsPalLayerSettings, 
+    QgsTextFormat, 
+    QgsTextBufferSettings, 
+    QgsVectorLayerSimpleLabeling, 
+    QgsMapSettings, 
+    QgsRectangle,
+    QgsFeature
+)
 
 
 class AnalizaTask(QgsTask):
@@ -54,30 +67,31 @@ class AnalizaTask(QgsTask):
 
         # wybiera wydzielenia równe i ponizej IV klasy bonitacji gleby
         r_features = []
-        features = [obiect for obiect in self.wydzielenia_opisy.getFeatures()]
-        roles = ['RV', 'RIV']
-        for i, feature in enumerate(features):
-            for j, role in enumerate(roles):
-                if role in str(feature['g_l']):
-                    r_features.append(feature)
-        r_features=list(set(r_features))
-        if len(r_features)>0:
-            all_features = []
-            features2 = [obiect for obiect in self.wydzielenia.getFeatures()]
-            for i, feature2 in enumerate(features2):
-                for j, feature in enumerate(r_features):
-                    if feature2['id_adres']==feature['id_adres']:
-                        all_features.append(feature2)
+        features = list(self.wydzielenia_opisy.getFeatures())
+        roles = {'RV', 'RIV'}
+        
+        for feature in features:
+            # sprawdzenie czy role znajduje się w atrybucie g_l
+            gl_value = str(feature['g_l'])
+            if any(role in gl_value for role in roles):
+                r_features.append(feature)
+        
+        if r_features:
+            r_features_ids = {f['id_adres'] for f in r_features}
+            
+            features2 = self.wydzielenia.getFeatures()
+            # filtruje tylko te obiekty ktorych id_adres znajduje się w r_features_ids
+            all_features = [f for f in features2 if f['id_adres'] in r_features_ids]
+            
             wydzielenia_po_analizie = QgsVectorLayer(
                     'Polygon?crs=epsg:2180', 'wydzielenia_po_analizie', 'memory')
             pr = wydzielenia_po_analizie.dataProvider()
             wydzielenia_po_analizie.startEditing()
 
-            for feature in all_features:
-                pr.addFeatures([feature])  
+            pr.addFeatures(all_features)
             wydzielenia_po_analizie.commitChanges()
         else:
-            msg = QMessageBox.critical(None, "Nie ma wydzieleń o wymaganej klasie bonitacji gleby", "Analiza zakończona")
+            QMessageBox.critical(None, "Nie ma wydzieleń o wymaganej klasie bonitacji gleby", "Analiza zakończona")
             self.resetujBtn.setEnabled(True)
             return False
 
@@ -88,9 +102,9 @@ class AnalizaTask(QgsTask):
         self.obszary = QgsVectorLayer('Polygon?crs=epsg:2180', 'Wyznaczone obszary', 'memory')
         pr = self.obszary.dataProvider()
         self.obszary.startEditing()
-        pr.addAttributes([QgsField('nr_ob', QVariant.Int, len=100),
-                          QgsField('adr_les', QVariant.String, len=255),
-                        QgsField('pow', QVariant.Double, len=10, prec=2)]
+        pr.addAttributes([QgsField('nr_ob', QMetaType.Int),
+                          QgsField('adr_les', QMetaType.QString),
+                        QgsField('pow', QMetaType.Double)]
                           )
         obszary_powyzej_poltora_ha= [feature for feature in wydzielenia_po_analizie_polaczone_w_obszary.getFeatures() if round((feature.geometry().area()/10000)>1.5, 2)]
         for i, obszar_powyzej_poltora_ha in enumerate (obszary_powyzej_poltora_ha):
@@ -129,7 +143,7 @@ class AnalizaTask(QgsTask):
            
             QgsProject.instance().addMapLayer(self.linie)
             prov = self.linie.dataProvider()
-            prov.addAttributes( [ QgsField("nr_ob", QVariant.Int), QgsField("odl", QVariant.Int), QgsField("rodzaj", QVariant.String)])
+            prov.addAttributes( [ QgsField("nr_ob", QMetaType.Int), QgsField("odl", QMetaType.Int), QgsField("rodzaj", QMetaType.QString)])
             for i, points in enumerate(centroids.getFeatures()):
                 cswc = min([(l.id(),l.geometry().closestSegmentWithContext(QgsPointXY(points.geometry().asPoint()))) for l in lines], key=itemgetter(1))
                 minDistPoint = cswc[1][1]  
@@ -150,7 +164,7 @@ class AnalizaTask(QgsTask):
             self.drogi = QgsVectorLayer('LineString?crs=epsg:2180', 'Najbliższe drogi', 'memory')
             
             prov = self.drogi.dataProvider()
-            prov.addAttributes( [ QgsField("nr_ob", QVariant.Int), QgsField("odl", QVariant.Int), QgsField("rodzaj",QVariant.String)])
+            prov.addAttributes( [ QgsField("nr_ob", QMetaType.Int), QgsField("odl", QMetaType.Int), QgsField("rodzaj",QMetaType.QString)])
             # dodanie stylu do warstwy wyznaczone z najbliższymi drogami
             symbol =  QgsLineSymbol.createSimple(
                 {'color': 'gray', 'outline_color' : 'gray',  'outline_style': 'solid',
