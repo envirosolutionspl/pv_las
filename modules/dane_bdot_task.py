@@ -7,6 +7,7 @@ import requests
 import io
 import os
 import processing
+from .. import constants
 
 from qgis.core import (
     QgsTask, 
@@ -43,9 +44,9 @@ class PobierzBdotTask(QgsTask):
         self.wczytajBdot10kBtn.setEnabled(False)
         self.resetujBtn.setEnabled(False)
 
-        #pobieranie dróg i linii bdot10k z określonych powiatów
+        # pobieranie dróg i linii bdot10k z określonych powiatów
         for feature in self.features:
-            r = requests.get('https://opendata.geoportal.gov.pl/bdot10k/SHP/{}/{}_SHP.zip'.format(feature[1], feature[1]+feature[2]))
+            r = requests.get(constants.BDOT10K_SHP_URL_TEMPLATE.format(feature[1], feature[1]+feature[2]))
             z = zipfile.ZipFile(io.BytesIO(r.content))
             tempdir = tempfile.TemporaryDirectory()
             z.extractall(tempdir.name)
@@ -53,32 +54,32 @@ class PobierzBdotTask(QgsTask):
             for root, dirs, files in os.walk(tempdir.name):
                 for file in files:
                
-                    if file.endswith('SKDR_L.shp'):
+                    if file.endswith(constants.BDOT_FILE_SUFFIX_DROGI):
                         
                         path=tempdir.name + '\\'+ file
-                        ddd = QgsVectorLayer(path, "drogi_bdot10k", "ogr")
+                        ddd = QgsVectorLayer(path, constants.LAYER_NAME_BDOT10K_DROGI, "ogr")
                         self.drogi_list.append(ddd)
 
 
-                    if file.endswith('SULN_L.shp'):
+                    if file.endswith(constants.BDOT_FILE_SUFFIX_LINIE):
                         path=tempdir.name + '\\'+ file
-                        ddd = QgsVectorLayer(path, "linie_bdot10k", "ogr")
+                        ddd = QgsVectorLayer(path, constants.LAYER_NAME_BDOT10K_LINIE, "ogr")
                         self.linie_list.append(ddd)
 
-        #łączenie dróg i linii z określonch dróg i powiatów w pojedyncze warsty 
+        # łączenie dróg i linii z określonch dróg i powiatów w pojedyncze warsty 
 
         parameters = {'LAYERS': self.drogi_list, 
-              'CRS': 'EPSG:2180', 
+              'CRS': constants.CRS_EPSG_2180, 
               'OUTPUT': 'memory:'}
 
         drogi_polaczone=processing.run("native:mergevectorlayers", parameters)['OUTPUT']
         
 
         parameters = {'LAYERS': self.linie_list, 
-                'CRS': 'EPSG:2180', 
+                'CRS': constants.CRS_EPSG_2180, 
                 'OUTPUT': 'memory:'}
         linie_polaczone=processing.run("qgis:mergevectorlayers", parameters)['OUTPUT']
-        self.drogi_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', 'drogi_bdot10k', 'memory')
+        self.drogi_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', constants.LAYER_NAME_BDOT10K_DROGI, 'memory')
         self.drogi_bdot10k.startEditing()
         pr = self.drogi_bdot10k.dataProvider()
         attr = drogi_polaczone.dataProvider().fields().toList()
@@ -89,13 +90,13 @@ class PobierzBdotTask(QgsTask):
 
         # dodanie stylu do warstwy z drogami
         symbol =  QgsLineSymbol.createSimple(
-                {'color': 'gray', 'outline_color' : 'gray',  'outline_style': 'solid',
-            'outline_width': '0.26'})
+                {'color': constants.STYLE_COLOR_BDOT_DROGI, 'outline_color' : constants.STYLE_COLOR_BDOT_DROGI,  'outline_style': 'solid',
+            'outline_width': constants.STYLE_WIDTH_BDOT_DROGI})
         renderer = QgsSingleSymbolRenderer(symbol)
         self.drogi_bdot10k.setRenderer(renderer)
 
         QgsProject.instance().addMapLayer(self.drogi_bdot10k)
-        self.linie_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', 'linie_bdot10k', 'memory')
+        self.linie_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', constants.LAYER_NAME_BDOT10K_LINIE, 'memory')
         self.linie_bdot10k.startEditing()
         pr = self.linie_bdot10k.dataProvider()
         attr = linie_polaczone.dataProvider().fields().toList()
@@ -106,8 +107,8 @@ class PobierzBdotTask(QgsTask):
 
         # dodanie stylu do warstwy z liniami energetycznymi
         symbol =  QgsLineSymbol.createSimple(
-                {'color': 'red', 'outline_color' : 'red',  'outline_style': 'solid',
-            'outline_width': '0.26'})
+                {'color': constants.STYLE_COLOR_BDOT_LINIE, 'outline_color' : constants.STYLE_COLOR_BDOT_LINIE,  'outline_style': 'solid',
+            'outline_width': constants.STYLE_WIDTH_BDOT_LINIE})
         renderer = QgsSingleSymbolRenderer(symbol)
         self.linie_bdot10k.setRenderer(renderer)
         QgsProject.instance().addMapLayer(self.linie_bdot10k)

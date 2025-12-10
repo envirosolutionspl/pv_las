@@ -29,6 +29,8 @@ from qgis.core import (
     QgsFeature
 )
 
+from .. import constants
+
 
 class AnalizaTask(QgsTask):
    
@@ -49,12 +51,9 @@ class AnalizaTask(QgsTask):
         self.analizaBtn = analizaBtn
         self.exception = None
 
-        self.rodzaj_napiecia = {
-            'najwyzszeNapiecie':'najwyższego napięcia',
-            'wysokieNapiecie': 'wysokiego napięcia' ,
-            'srednieNapiecie': 'średniego napięcia',
-            'niskieNapiecie': 'niskiego napięcia'
-        }
+        self.exception = None
+
+        self.rodzaj_napiecia = constants.VOLTAGE_TYPES
 
            
   
@@ -68,23 +67,23 @@ class AnalizaTask(QgsTask):
         # wybiera wydzielenia równe i ponizej IV klasy bonitacji gleby
         r_features = []
         features = list(self.wydzielenia_opisy.getFeatures())
-        roles = {'RV', 'RIV'}
+        roles = constants.SOIL_ROLES
         
         for feature in features:
             # sprawdzenie czy role znajduje się w atrybucie g_l
-            gl_value = str(feature['g_l'])
+            gl_value = str(feature[constants.ATTR_GL])
             if any(role in gl_value for role in roles):
                 r_features.append(feature)
         
         if r_features:
-            r_features_ids = {f['id_adres'] for f in r_features}
+            r_features_ids = {f[constants.ATTR_ID_ADRES] for f in r_features}
             
             features2 = self.wydzielenia.getFeatures()
             # filtruje tylko te obiekty ktorych id_adres znajduje się w r_features_ids
-            all_features = [f for f in features2 if f['id_adres'] in r_features_ids]
+            all_features = [f for f in features2 if f[constants.ATTR_ID_ADRES] in r_features_ids]
             
             wydzielenia_po_analizie = QgsVectorLayer(
-                    'Polygon?crs=epsg:2180', 'wydzielenia_po_analizie', 'memory')
+                    'Polygon?crs=epsg:2180', constants.LAYER_NAME_WYDZIELENIA_PO_ANALIZIE, 'memory')
             pr = wydzielenia_po_analizie.dataProvider()
             wydzielenia_po_analizie.startEditing()
 
@@ -99,12 +98,12 @@ class AnalizaTask(QgsTask):
         # łączenie sąsiednie wydzielenia w o wymaganej klasie bonitacji i wybór obszarów o pow. powyżej 1.5 ha
         wydzielenia_po_analizie_polaczone = processing.run("qgis:buffer", {'INPUT': wydzielenia_po_analizie, 'DISTANCE':0, 'DISSOLVE':True, 'OUTPUT': 'memory:'})['OUTPUT']
         wydzielenia_po_analizie_polaczone_w_obszary = processing.run("native:multiparttosingleparts", {'INPUT': wydzielenia_po_analizie_polaczone,'OUTPUT': 'memory:'})['OUTPUT']
-        self.obszary = QgsVectorLayer('Polygon?crs=epsg:2180', 'Wyznaczone obszary', 'memory')
+        self.obszary = QgsVectorLayer('Polygon?crs=epsg:2180', constants.RESULT_LAYER_OBSZARY, 'memory')
         pr = self.obszary.dataProvider()
         self.obszary.startEditing()
-        pr.addAttributes([QgsField('nr_ob', QMetaType.Int),
-                          QgsField('adr_les', QMetaType.QString),
-                        QgsField('pow', QMetaType.Double)]
+        pr.addAttributes([QgsField(constants.ATTR_NR_OB, QMetaType.Int),
+                          QgsField(constants.ATTR_ADR_LES, QMetaType.QString),
+                        QgsField(constants.ATTR_POW, QMetaType.Double)]
                           )
         obszary_powyzej_poltora_ha= [feature for feature in wydzielenia_po_analizie_polaczone_w_obszary.getFeatures() if round((feature.geometry().area()/10000)>1.5, 2)]
         for i, obszar_powyzej_poltora_ha in enumerate (obszary_powyzej_poltora_ha):
@@ -120,8 +119,8 @@ class AnalizaTask(QgsTask):
            
             # dodanie stylu do warstwy wyznaczone obszary
             symbol =  QgsFillSymbol.createSimple(
-                {'color': '#005023', 'outline_color' : 'black',  'outline_style':'solid',
-            'outline_width': '0.26'})
+                {'color': constants.STYLE_COLOR_WYDZIELENIA, 'outline_color' : constants.STYLE_COLOR_WYDZIELENIA_OUTLINE,  'outline_style':'solid',
+            'outline_width': constants.STYLE_WIDTH_WYDZIELENIA})
             renderer = QgsSingleSymbolRenderer(symbol)
             self.obszary.setRenderer(renderer)
             QgsProject.instance().addMapLayer(self.obszary)
@@ -129,21 +128,21 @@ class AnalizaTask(QgsTask):
              # wyznaczenie najbliższych dróg i linii energetycznych do wyznaczonych obszarów
 
             centroids = processing.run("native:centroids", {'INPUT': self.obszary,'ALL_PARTS':False,'OUTPUT':'memory:'})['OUTPUT']
-            self.linie_bdot10k = QgsProject.instance().mapLayersByName('linie_bdot10k')[0]
+            self.linie_bdot10k = QgsProject.instance().mapLayersByName(constants.LAYER_NAME_BDOT10K_LINIE)[0]
             lines = [feature for feature in self.linie_bdot10k.getFeatures() if feature[37] in self.rodzaj_napiecia.keys()]
-            self.linie = QgsVectorLayer('LineString?crs=epsg:2180', 'Najbliższe linie energetyczne', 'memory')
+            self.linie = QgsVectorLayer('LineString?crs=epsg:2180', constants.RESULT_LAYER_LINIE, 'memory')
 
             # dodanie stylu do warstwy wyznaczone z najbliższymi liniami energetycznymi
             symbol =  QgsLineSymbol.createSimple(
-                {'color': 'red', 'outline_color' : 'red',  'outline_style': 'solid',
-            'outline_width': '0.5'})
+                {'color': constants.STYLE_COLOR_LINIE_ENERGETYCZNE, 'outline_color' : constants.STYLE_COLOR_LINIE_ENERGETYCZNE,  'outline_style': 'solid',
+            'outline_width': constants.STYLE_WIDTH_LINIE_ENERGETYCZNE})
             renderer = QgsSingleSymbolRenderer(symbol)
             self.linie.setRenderer(renderer)
             
            
             QgsProject.instance().addMapLayer(self.linie)
             prov = self.linie.dataProvider()
-            prov.addAttributes( [ QgsField("nr_ob", QMetaType.Int), QgsField("odl", QMetaType.Int), QgsField("rodzaj", QMetaType.QString)])
+            prov.addAttributes( [ QgsField(constants.ATTR_NR_OB, QMetaType.Int), QgsField(constants.ATTR_ODL, QMetaType.Int), QgsField(constants.ATTR_RODZAJ, QMetaType.QString)])
             for i, points in enumerate(centroids.getFeatures()):
                 cswc = min([(l.id(),l.geometry().closestSegmentWithContext(QgsPointXY(points.geometry().asPoint()))) for l in lines], key=itemgetter(1))
                 minDistPoint = cswc[1][1]  
@@ -151,24 +150,24 @@ class AnalizaTask(QgsTask):
                 feat = QgsFeature() 
                 line = QgsGeometry.fromPolyline([QgsPoint(points.geometry().asPoint()), QgsPoint(minDistPoint[0], minDistPoint[1])]) 
                 feat= self.linie_bdot10k.getFeature(minDistLine)
-                feat.setAttributes([points["nr_ob"], line.length(), self.rodzaj_napiecia[feat[37]]])
+                feat.setAttributes([points[constants.ATTR_NR_OB], line.length(), self.rodzaj_napiecia[feat[37]]])
                 prov.addFeatures([feat])
             self.linie.triggerRepaint()
             self.linie.updateFields()
 
 
-            self.drogi_bdot10k = QgsProject.instance().mapLayersByName('drogi_bdot10k')[0]
+            self.drogi_bdot10k = QgsProject.instance().mapLayersByName(constants.LAYER_NAME_BDOT10K_DROGI)[0]
             drogi = [ft for ft in self.drogi_bdot10k.getFeatures() if ft.geometry().isGeosValid()]
             oddzialy = [feature for feature in self.oddzialy.getFeatures() if feature.geometry().isGeosValid()]
-            drogi_lesne = [feature for feature in self.drogi_lesne.getFeatures() if feature[1] =="DROGI L" and feature.geometry().isGeosValid()]
-            self.drogi = QgsVectorLayer('LineString?crs=epsg:2180', 'Najbliższe drogi', 'memory')
+            drogi_lesne = [feature for feature in self.drogi_lesne.getFeatures() if feature[1] ==constants.LAYER_NAME_DROGI_LESNE_FILTER and feature.geometry().isGeosValid()]
+            self.drogi = QgsVectorLayer('LineString?crs=epsg:2180', constants.RESULT_LAYER_DROGI, 'memory')
             
             prov = self.drogi.dataProvider()
-            prov.addAttributes( [ QgsField("nr_ob", QMetaType.Int), QgsField("odl", QMetaType.Int), QgsField("rodzaj",QMetaType.QString)])
+            prov.addAttributes( [ QgsField(constants.ATTR_NR_OB, QMetaType.Int), QgsField(constants.ATTR_ODL, QMetaType.Int), QgsField(constants.ATTR_RODZAJ,QMetaType.QString)])
             # dodanie stylu do warstwy wyznaczone z najbliższymi drogami
             symbol =  QgsLineSymbol.createSimple(
-                {'color': 'gray', 'outline_color' : 'gray',  'outline_style': 'solid',
-            'outline_width': '0.5'})
+                {'color': constants.STYLE_COLOR_DROGI, 'outline_color' : constants.STYLE_COLOR_DROGI,  'outline_style': 'solid',
+            'outline_width': constants.STYLE_WIDTH_DROGI})
             renderer = QgsSingleSymbolRenderer(symbol)
             self.drogi.setRenderer(renderer)
             QgsProject.instance().addMapLayer(self.drogi)
@@ -191,14 +190,14 @@ class AnalizaTask(QgsTask):
 
                     for i, feature112 in enumerate(oddzialy):
                         if feat.geometry().intersects(feature112.geometry()):
-                            feat.setAttributes([points["nr_ob"], length1, 'leśna'])
+                            feat.setAttributes([points[constants.ATTR_NR_OB], length1, 'leśna'])
                             break
                         else: 
-                            feat.setAttributes([points["nr_ob"], length1, a])  
+                            feat.setAttributes([points[constants.ATTR_NR_OB], length1, a])  
                     prov.addFeatures([feat])
                 else:
                     feat= self.drogi_lesne.getFeature(minDistLine2)
-                    feat.setAttributes([points["nr_ob"], length2, 'leśna'])
+                    feat.setAttributes([points[constants.ATTR_NR_OB], length2, 'leśna'])
                     prov.addFeatures([feat])
             self.drogi.triggerRepaint()
             self.drogi.updateFields()
@@ -206,15 +205,15 @@ class AnalizaTask(QgsTask):
            # dodanie etykiet (nr obszaru) do warstwy z wyznaczonymi obszarami
             layer_settings  = QgsPalLayerSettings()
             text_format = QgsTextFormat()
-            text_format.setFont(QFont("Arial", 10))
-            text_format.setSize(10)
-            text_format.setColor(QColor(255, 153, 51))
+            text_format.setFont(QFont(constants.LABEL_FONT_FAMILY, constants.LABEL_FONT_SIZE))
+            text_format.setSize(constants.LABEL_FONT_SIZE)
+            text_format.setColor(QColor(constants.LABEL_COLOR_RGB))
             buffer_settings = QgsTextBufferSettings()
             buffer_settings.setEnabled(True)
             buffer_settings.setSize(0.10)
             text_format.setBuffer(buffer_settings)
             layer_settings.setFormat(text_format)
-            layer_settings.fieldName = "nr_ob"
+            layer_settings.fieldName = constants.ATTR_NR_OB
             layer_settings.xOffset = 2.0
             layer_settings.yOffset = 3.0
             layer_settings.enabled = True

@@ -4,11 +4,13 @@ from qgis.PyQt.QtCore import QSettings, QFileInfo
 
 
 class ZapiszXLSX:
-    """Klasa zapisująca plik .xlsx.
+    """
+    Klasa zapisująca plik .xlsx.
     """
 
-    def zapisz_xlsx(self) -> str:
-        """Zapisuje plik .xlsx w wybranej lokalizacji.
+    def zapiszExcel(self) -> str:
+        """
+        Zapisuje plik .xlsx w wybranej lokalizacji.
 
         Returns:
             str:  wybrana ścieżka zapisu.

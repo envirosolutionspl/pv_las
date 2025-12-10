@@ -6,7 +6,7 @@ class GenerujRaport():
     """Klasa generująca raport
     """
 
-    def tworz_tabele(self, nazwa_pliku, obszary, drogi, linie, nazwa_nadl):
+    def tworzTabele(self, nazwa_pliku, obszary, drogi, linie, nazwa_nadl):
         """Tworzy tabelę excela.
 
         Args:
