@@ -360,7 +360,7 @@
                </font>
               </property>
               <property name="title">
-               <string>Przedstawienie wynków analizy</string>
+               <string>Przedstawienie wyników analizy</string>
               </property>
               <property name="flat">
                <bool>false</bool>
