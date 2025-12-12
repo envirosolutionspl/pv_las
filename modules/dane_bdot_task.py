@@ -7,7 +7,13 @@ import requests
 import io
 import os
 import processing
-from .. import constants
+from ..constants import (
+    BDOT10K_SHP_URL_TEMPLATE, BDOT_FILE_SUFFIX_DROGI, BDOT_FILE_SUFFIX_LINIE,
+    LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG_2180,
+    STYLE_COLOR_BDOT_DROGI, STYLE_WIDTH_BDOT_DROGI,
+    STYLE_COLOR_BDOT_LINIE, STYLE_WIDTH_BDOT_LINIE
+)
+from ..utils import pushLogInfo
 
 from qgis.core import (
     QgsTask, 
@@ -39,47 +45,49 @@ class PobierzBdotTask(QgsTask):
   
     def run(self):
 
-        QgsMessageLog.logMessage('Started task')
-        QgsMessageLog.logMessage('pobieram bdot10k')
+        pushLogInfo('Started task')
+        pushLogInfo('pobieram bdot10k')
         self.wczytajBdot10kBtn.setEnabled(False)
         self.resetujBtn.setEnabled(False)
 
         # pobieranie dróg i linii bdot10k z określonych powiatów
-        for feature in self.features:
-            r = requests.get(constants.BDOT10K_SHP_URL_TEMPLATE.format(feature[1], feature[1]+feature[2]))
+        tempdir = tempfile.TemporaryDirectory()
+        for i, feature in enumerate(self.features):
+            r = requests.get(BDOT10K_SHP_URL_TEMPLATE.format(feature[1], feature[1]+feature[2]))
             z = zipfile.ZipFile(io.BytesIO(r.content))
-            tempdir = tempfile.TemporaryDirectory()
-            z.extractall(tempdir.name)
+            
+            extract_path = os.path.join(tempdir.name, str(i))
+            z.extractall(extract_path)
           
-            for root, dirs, files in os.walk(tempdir.name):
+            for root, dirs, files in os.walk(extract_path):
                 for file in files:
                
-                    if file.endswith(constants.BDOT_FILE_SUFFIX_DROGI):
+                    if file.endswith(BDOT_FILE_SUFFIX_DROGI):
                         
-                        path=tempdir.name + '\\'+ file
-                        ddd = QgsVectorLayer(path, constants.LAYER_NAME_BDOT10K_DROGI, "ogr")
+                        path = os.path.join(root, file)
+                        ddd = QgsVectorLayer(path, LAYER_NAME_BDOT10K_DROGI, "ogr")
                         self.drogi_list.append(ddd)
 
 
-                    if file.endswith(constants.BDOT_FILE_SUFFIX_LINIE):
-                        path=tempdir.name + '\\'+ file
-                        ddd = QgsVectorLayer(path, constants.LAYER_NAME_BDOT10K_LINIE, "ogr")
+                    if file.endswith(BDOT_FILE_SUFFIX_LINIE):
+                        path = os.path.join(root, file)
+                        ddd = QgsVectorLayer(path, LAYER_NAME_BDOT10K_LINIE, "ogr")
                         self.linie_list.append(ddd)
 
         # łączenie dróg i linii z określonch dróg i powiatów w pojedyncze warsty 
 
         parameters = {'LAYERS': self.drogi_list, 
-              'CRS': constants.CRS_EPSG_2180, 
+              'CRS': CRS_EPSG_2180, 
               'OUTPUT': 'memory:'}
 
         drogi_polaczone=processing.run("native:mergevectorlayers", parameters)['OUTPUT']
         
 
         parameters = {'LAYERS': self.linie_list, 
-                'CRS': constants.CRS_EPSG_2180, 
+                'CRS': CRS_EPSG_2180, 
                 'OUTPUT': 'memory:'}
         linie_polaczone=processing.run("qgis:mergevectorlayers", parameters)['OUTPUT']
-        self.drogi_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', constants.LAYER_NAME_BDOT10K_DROGI, 'memory')
+        self.drogi_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', LAYER_NAME_BDOT10K_DROGI, 'memory')
         self.drogi_bdot10k.startEditing()
         pr = self.drogi_bdot10k.dataProvider()
         attr = drogi_polaczone.dataProvider().fields().toList()
@@ -90,13 +98,13 @@ class PobierzBdotTask(QgsTask):
 
         # dodanie stylu do warstwy z drogami
         symbol =  QgsLineSymbol.createSimple(
-                {'color': constants.STYLE_COLOR_BDOT_DROGI, 'outline_color' : constants.STYLE_COLOR_BDOT_DROGI,  'outline_style': 'solid',
-            'outline_width': constants.STYLE_WIDTH_BDOT_DROGI})
+                {'color': STYLE_COLOR_BDOT_DROGI, 'outline_color' : STYLE_COLOR_BDOT_DROGI,  'outline_style': 'solid',
+            'outline_width': STYLE_WIDTH_BDOT_DROGI})
         renderer = QgsSingleSymbolRenderer(symbol)
         self.drogi_bdot10k.setRenderer(renderer)
 
         QgsProject.instance().addMapLayer(self.drogi_bdot10k)
-        self.linie_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', constants.LAYER_NAME_BDOT10K_LINIE, 'memory')
+        self.linie_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', LAYER_NAME_BDOT10K_LINIE, 'memory')
         self.linie_bdot10k.startEditing()
         pr = self.linie_bdot10k.dataProvider()
         attr = linie_polaczone.dataProvider().fields().toList()
@@ -107,8 +115,8 @@ class PobierzBdotTask(QgsTask):
 
         # dodanie stylu do warstwy z liniami energetycznymi
         symbol =  QgsLineSymbol.createSimple(
-                {'color': constants.STYLE_COLOR_BDOT_LINIE, 'outline_color' : constants.STYLE_COLOR_BDOT_LINIE,  'outline_style': 'solid',
-            'outline_width': constants.STYLE_WIDTH_BDOT_LINIE})
+                {'color': STYLE_COLOR_BDOT_LINIE, 'outline_color' : STYLE_COLOR_BDOT_LINIE,  'outline_style': 'solid',
+            'outline_width': STYLE_WIDTH_BDOT_LINIE})
         renderer = QgsSingleSymbolRenderer(symbol)
         self.linie_bdot10k.setRenderer(renderer)
         QgsProject.instance().addMapLayer(self.linie_bdot10k)
@@ -126,15 +134,15 @@ class PobierzBdotTask(QgsTask):
             pass  
         else:
             if self.exception is None:
-                QgsMessageLog.logMessage('finished with false')
+                pushLogInfo('finished with false')
             else:
-                QgsMessageLog.logMessage("exception")
+                pushLogInfo("exception")
                 raise self.exception
             self.iface.messageBar().pushWarning("Błąd",
                                                 "Dane BDOT10k nie zostały pobrane.")
 
     def cancel(self):
-        QgsMessageLog.logMessage('cancel')
+        pushLogInfo('cancel')
         super().cancel()
             
         

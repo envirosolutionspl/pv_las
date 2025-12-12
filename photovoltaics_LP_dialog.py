@@ -29,18 +29,38 @@ from pathlib import Path
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
+from qgis.PyQt.QtWidgets import QFileDialog
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.utils import iface
-from qgis.core import * 
+from qgis.core import (
+    Qgis, QgsRasterLayer, QgsProject, QgsVectorLayer, QgsLineSymbol,
+    QgsFillSymbol, QgsSingleSymbolRenderer, QgsMapSettings, QgsRectangle,
+    QgsApplication, QgsWkbTypes, QgsCoordinateReferenceSystem,
+    QgsVectorFileWriter, QgsPrintLayout, QgsLayoutItemMap, QgsLayoutPoint,
+    QgsUnitTypes, QgsLayoutSize, QgsLayoutItemPicture, QgsLayoutItemLabel,
+    QgsLayoutItemLegend, QgsLayerTree, QgsLayoutItemScaleBar,
+    QgsScaleBarSettings, QgsLayoutExporter
+) 
 
 from .modules.dane_bdot_task import PobierzBdotTask
 from .modules.analiza_task import AnalizaTask
 
 from .modules.zapisz_xlsx import ZapiszXLSX
 from .modules.generuj_raport import GenerujRaport
-from . import utils
-from . import constants
+from .utils import (
+    openFile, pushMessageBox, pushMessageBoxCritical, 
+    pushMessage, pushLogInfo
+)
+from .constants import (
+    WMTS_URL_TEMPLATE, MAPA_BAZOWA_LAYERS, CRS_EPSG_2180, MAPA_BAZOWA_URL,
+    MAPA_BAZOWA_LAYER_NAME, FILENAME_POWIATY, FILENAME_WYDZIELENIA,
+    FILENAME_DROGI_LESNE, FILENAME_ODDZIALY, FILENAME_WYDZIELENIA_OPISY,
+    FILENAME_NADLESNICTWO, LAYER_NAME_ODDZIALY, LAYER_NAME_POWIATY,
+    LAYER_NAME_WYDZIELENIA, LAYER_NAME_DROGI_LESNE, LAYER_NAME_WYDZIELENIA_OPISY,
+    LAYER_NAME_NADLESNICTWO, STYLE_COLOR_DROGI_LESNE, STYLE_WIDTH_DROGI_LESNE,
+    STYLE_COLOR_WYDZIELENIA, STYLE_COLOR_WYDZIELENIA_OUTLINE, STYLE_WIDTH_WYDZIELENIA,
+    RESULT_LAYER_OBSZARY, RESULT_LAYER_LINIE, RESULT_LAYER_DROGI, LAYOUT_CONFIG
+)
 
 
 # To wczytuje plik .ui, dzięki czemu PyQt uzupełni wtyczkę elementami z Qt Designera.
@@ -59,7 +79,8 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
 
-        self.label_60.setMargin(4)
+        self.iface = iface
+        self.plugin_icon = ':/plugins/photovoltaics_LP/icons/fotowoltaika.svg'
 
         self.wydzielenia = None
         self.wydzielenia_opisy = None
@@ -96,13 +117,13 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         dodaje mapę bazową
         """
    
-        wmts_url = constants.WMTS_URL_TEMPLATE.format(
-            layers=constants.MAPA_BAZOWA_LAYERS,
-            crs=constants.CRS_EPSG_2180,
-            url=constants.MAPA_BAZOWA_URL
+        wmts_url = WMTS_URL_TEMPLATE.format(
+            layers=MAPA_BAZOWA_LAYERS,
+            crs=CRS_EPSG_2180,
+            url=MAPA_BAZOWA_URL
         )
         
-        self.mapa_bazowa = QgsRasterLayer(wmts_url, constants.MAPA_BAZOWA_LAYER_NAME, 'wms')
+        self.mapa_bazowa = QgsRasterLayer(wmts_url, MAPA_BAZOWA_LAYER_NAME, 'wms')
         if self.mapa_bazowa.isValid():
             root = QgsProject.instance().layerTreeRoot()
             QgsProject.instance().addMapLayer(self.mapa_bazowa, False)
@@ -111,9 +132,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             self.mapa_bazowa.triggerRepaint()
 
         else:
-         
-            msg = QMessageBox.critical(
-                    None, "Nie udało się wczytać mapy bazowej", "Sprawdź połączenie z internetem!")
+            pushMessageBoxCritical(self, "Nie udało się wczytać mapy bazowej", "Sprawdź połączenie z internetem!")
 
     def pobierzWarstwyPochodne(self):
         """Ładuje warstwy pochodne z folderu .zip do projektu).
@@ -128,34 +147,34 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             zf = zipfile.ZipFile(self.selected_data[0])
             tempdir= tempfile.TemporaryDirectory()
             zf.extractall(tempdir.name)
-            powiaty_path = tempdir.name + '\\'+ constants.FILENAME_POWIATY
-            wydzielenia_path = tempdir.name + '\\'+ constants.FILENAME_WYDZIELENIA
-            drogi_lesne_path = tempdir.name + '\\'+ constants.FILENAME_DROGI_LESNE
-            oddzialy_path = tempdir.name + '\\'+ constants.FILENAME_ODDZIALY
-            wydzielenia_opisy_path = tempdir.name + '\\'+ constants.FILENAME_WYDZIELENIA_OPISY
-            nadlesnictwo_path = tempdir.name + '\\'+ constants.FILENAME_NADLESNICTWO
+            powiaty_path = tempdir.name + '\\'+ FILENAME_POWIATY
+            wydzielenia_path = tempdir.name + '\\'+ FILENAME_WYDZIELENIA
+            drogi_lesne_path = tempdir.name + '\\'+ FILENAME_DROGI_LESNE
+            oddzialy_path = tempdir.name + '\\'+ FILENAME_ODDZIALY
+            wydzielenia_opisy_path = tempdir.name + '\\'+ FILENAME_WYDZIELENIA_OPISY
+            nadlesnictwo_path = tempdir.name + '\\'+ FILENAME_NADLESNICTWO
 
-            self.oddzialy= QgsVectorLayer(oddzialy_path, constants.LAYER_NAME_ODDZIALY, "ogr")
-            self.powiaty = QgsVectorLayer(powiaty_path, constants.LAYER_NAME_POWIATY, "ogr")
-            self.wydzielenia = QgsVectorLayer(wydzielenia_path, constants.LAYER_NAME_WYDZIELENIA, "ogr")
-            self.drogi_lesne = QgsVectorLayer(drogi_lesne_path, constants.LAYER_NAME_DROGI_LESNE, "ogr")
-            self.wydzielenia_opisy = QgsVectorLayer( wydzielenia_opisy_path, constants.LAYER_NAME_WYDZIELENIA_OPISY, "ogr")
-            self.nadlesnictwo = QgsVectorLayer( nadlesnictwo_path, constants.LAYER_NAME_NADLESNICTWO, "ogr")
+            self.oddzialy= QgsVectorLayer(oddzialy_path, LAYER_NAME_ODDZIALY, "ogr")
+            self.powiaty = QgsVectorLayer(powiaty_path, LAYER_NAME_POWIATY, "ogr")
+            self.wydzielenia = QgsVectorLayer(wydzielenia_path, LAYER_NAME_WYDZIELENIA, "ogr")
+            self.drogi_lesne = QgsVectorLayer(drogi_lesne_path, LAYER_NAME_DROGI_LESNE, "ogr")
+            self.wydzielenia_opisy = QgsVectorLayer( wydzielenia_opisy_path, LAYER_NAME_WYDZIELENIA_OPISY, "ogr")
+            self.nadlesnictwo = QgsVectorLayer( nadlesnictwo_path, LAYER_NAME_NADLESNICTWO, "ogr")
             self.nadlesnictwo.dataProvider().setEncoding(u'windows-1250')
            
             
             if self.drogi_lesne.isValid() and self.wydzielenia.isValid():
                     # dodanie stylu do warstwy z drogami leśnymi
                     symbol =  QgsLineSymbol.createSimple(
-                    {'color': constants.STYLE_COLOR_DROGI_LESNE, 'outline_color' : constants.STYLE_COLOR_DROGI_LESNE,  'outline_style': 'solid',
-                    'outline_width': constants.STYLE_WIDTH_DROGI_LESNE})
+                    {'color': STYLE_COLOR_DROGI_LESNE, 'outline_color' : STYLE_COLOR_DROGI_LESNE,  'outline_style': 'solid',
+                    'outline_width': STYLE_WIDTH_DROGI_LESNE})
                     renderer = QgsSingleSymbolRenderer(symbol)
                     self.drogi_lesne.setRenderer(renderer)
 
                     # dodanie stylu do warstwy z wydzieleniami leśnymi
                     symbol =  QgsFillSymbol.createSimple(
-                    {'color': constants.STYLE_COLOR_WYDZIELENIA, 'outline_color' : constants.STYLE_COLOR_WYDZIELENIA_OUTLINE,  'outline_style':'solid',
-                    'outline_width': constants.STYLE_WIDTH_WYDZIELENIA})
+                    {'color': STYLE_COLOR_WYDZIELENIA, 'outline_color' : STYLE_COLOR_WYDZIELENIA_OUTLINE,  'outline_style':'solid',
+                    'outline_width': STYLE_WIDTH_WYDZIELENIA})
                     renderer = QgsSingleSymbolRenderer(symbol)
                     self.wydzielenia.setRenderer(renderer)
 
@@ -167,21 +186,19 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                     rect = QgsRectangle(ms.fullExtent()) 
                     iface.mapCanvas().setExtent(rect) # ustawaianie do zakresu warstwy wydzielenni warstwy dróg leśnych
                     iface.mapCanvas().refresh()
-                    QMessageBox.information(
-                            None, "Sukces", "Ładowanie warstw pochodnych zakonczone sukcesem!")
+                    pushMessageBox(self, "Ładowanie warstw pochodnych zakonczone sukcesem!")
                     self.pobierzWarstwyPochodneBtn.setEnabled(False)
                     self.wczytajBdot10kBtn.setEnabled(True)
                     self.resetujBtn.setEnabled(True)
 
                    
             else:
-                msg = QMessageBox.critical(None, "Nie udało się wczytać warstw pochodnych", "Sprawdź poprawność danych!")
+                pushMessageBoxCritical(self, "Nie udało się wczytać warstw pochodnych", "Sprawdź poprawność danych!")
                 self.resetuj()    
                     
         else:
                
-            msg = QMessageBox.critical(
-            None, "Nie wybrano danych", "Wybierz dane!")
+            pushMessageBoxCritical(self, "Nie wybrano danych", "Wybierz dane!")
             
             
     def wczytajDaneBdot10k(self):
@@ -190,9 +207,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         """
        
         features = [obiect for obiect in self.powiaty.getFeatures()]
-        iface.messageBar().pushMessage("Informacja",
-                                            f'Pobieranie danych BDOT10k',
-                                            level=Qgis.Info)
+        pushMessage(self.iface, 'Pobieranie danych BDOT10k')
         task = PobierzBdotTask(
             description='Pobieranie danych',
             drogi_layer = self.drogi_bdot10k,
@@ -207,16 +222,14 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
 
         )
         QgsApplication.taskManager().addTask(task)
-        QgsMessageLog.logMessage('runtask')
+        pushLogInfo('runtask')
         
         
     def analizaData(self):
         """
         Wykonuje analizę na potrzeby farm fotowoltalicznych.
         """
-        iface.messageBar().pushMessage("Informacja",
-                                            f'Trwa analiza',
-                                            level=Qgis.Info)
+        pushMessage(self.iface, 'Trwa analiza')
         task = AnalizaTask(
             description='Trwa analiza',
             wydzielenia_opisy = self.wydzielenia_opisy,
@@ -233,7 +246,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
 
         )
         QgsApplication.taskManager().addTask(task)
-        QgsMessageLog.logMessage('runtask')     
+        pushLogInfo('runtask')     
 
     def zapiszWarstwy(self):
         """
@@ -246,31 +259,29 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(self.save_layer_path[0]) > 0:
                
             try:
-                wyznaczone_obszary = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_OBSZARY)[0]
+                wyznaczone_obszary = QgsProject.instance().mapLayersByName(RESULT_LAYER_OBSZARY)[0]
                 features_obszary = [feature for feature in wyznaczone_obszary.getFeatures()]
                 fields_obszary = wyznaczone_obszary.fields()
                 path=self.save_layer_path[0]
                 self.tworzWarstwy(path, QgsWkbTypes.Polygon, fields_obszary, 'Wyznaczone_obszary', features_obszary)
 
-                linie = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_LINIE)[0]
+                linie = QgsProject.instance().mapLayersByName(RESULT_LAYER_LINIE)[0]
                 features_linie = [feature for feature in linie.getFeatures()]
                 fields_linie = linie.fields()
                 path_linie = ('/').join(path.split('/')[:-1]) + '//'+ 'najblizsze_linie_energetyczne.shp'
                 self.tworzWarstwy(path_linie, QgsWkbTypes.LineString, fields_linie, 'Najbliższe_linie_energetyczne', features_linie)
 
-                drogi = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_DROGI)[0]
+                drogi = QgsProject.instance().mapLayersByName(RESULT_LAYER_DROGI)[0]
                 features_drogi = [feature for feature in drogi.getFeatures()]
                 fields_drogi = drogi.fields()
                 path_drogi = ('/').join(path.split('/')[:-1]) + '//'+ 'najblizsze_drogi.shp'
                 self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, 'Najbliższe_drogi', features_drogi)      
 
-                QMessageBox.information(
-                        None, "Sukces", "Zapisywanie warstw zakonczone sukcesem!")
+                pushMessageBox(self, "Zapisywanie warstw zakonczone sukcesem!")
                 folder_name = ('/').join(path.split('/')[:-1])
-                utils.openFile(folder_name)
+                openFile(folder_name)
             except:
-                msg = QMessageBox.critical(
-                    None, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
+                pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
 
 
     def tworzWarstwy(self,path, typ_geom, fields, name, features):
@@ -279,7 +290,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         najbiższych linii energetycznych.
         """
 
-        crs = QgsCoordinateReferenceSystem(constants.CRS_EPSG_2180)
+        crs = QgsCoordinateReferenceSystem(CRS_EPSG_2180)
         transform_context = QgsProject.instance().transformContext()
         save_options = QgsVectorFileWriter.SaveVectorOptions()
         save_options.driverName = "ESRI Shapefile"
@@ -291,8 +302,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             writer = QgsVectorFileWriter(
                 self.save_layer_path[0], 'UTF-8', fields,  typ_geom, crs, "ESRI Shapefile")
         if writer.hasError() != QgsVectorFileWriter.NoError:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
+            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
         else:
             del writer
             layer = QgsVectorLayer(
@@ -309,11 +319,11 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
 
-            self.linie = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_LINIE)[0]
+            self.linie = QgsProject.instance().mapLayersByName(RESULT_LAYER_LINIE)[0]
 
-            self.drogi = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_DROGI)[0]
+            self.drogi = QgsProject.instance().mapLayersByName(RESULT_LAYER_DROGI)[0]
 
-            self.obszary = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_OBSZARY)[0]
+            self.obszary = QgsProject.instance().mapLayersByName(RESULT_LAYER_OBSZARY)[0]
 
 
             nazwa_pliku = ZapiszXLSX().zapiszExcel()
@@ -321,13 +331,11 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             if nazwa_pliku:
                 generuj_raport = GenerujRaport()
                 generuj_raport.tworzTabele(nazwa_pliku, self.obszary, self.drogi, self.linie, nazwa_nadlesnictwa[0])
-                QMessageBox.information(
-                    None, "Sukces", "Generowanie raportu zakonczone sukcesem!")
+                pushMessageBox(self, "Generowanie raportu zakonczone sukcesem!")
                 folder_name = ('/').join(nazwa_pliku.split('/')[:-1])
-                utils.openFile(folder_name)
+                openFile(folder_name)
         except:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z wygenerowaniem raportu!")
+            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z wygenerowaniem raportu!")
 
     def generujWydruk(self):
         """
@@ -335,11 +343,11 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         W razie problemu pojawia się wiadomość.
         """
         try:
-            lc = constants.LAYOUT_CONFIG
+            lc = LAYOUT_CONFIG
             nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
-            self.linie = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_LINIE)[0]
-            self.drogi = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_DROGI)[0]
-            self.obszary = QgsProject.instance().mapLayersByName(constants.RESULT_LAYER_OBSZARY)[0]
+            self.linie = QgsProject.instance().mapLayersByName(RESULT_LAYER_LINIE)[0]
+            self.drogi = QgsProject.instance().mapLayersByName(RESULT_LAYER_DROGI)[0]
+            self.obszary = QgsProject.instance().mapLayersByName(RESULT_LAYER_OBSZARY)[0]
             warstwy=[self.obszary, self.drogi, self.linie]
             typy_obrazu = "jpg (*.jpg);;bitmap (*.bmp);;tiff (*.tiff);; pdf (*.pdf)"
             opcje = QFileDialog.Options()
@@ -467,21 +475,18 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                     exporter.exportToPdf(
                           nazwa_pliku[0],QgsLayoutExporter.PdfExportSettings())
                     
-                    QMessageBox.information(
-                            None, "Sukces", "Zapisywanie dokumentu zakończone sukcesem!")
+                    pushMessageBox(self, "Zapisywanie dokumentu zakończone sukcesem!")
                 else:
                     exporter = QgsLayoutExporter(layout)
                     exporter.exportToImage(
                             nazwa_pliku[0], QgsLayoutExporter.ImageExportSettings())
-                    QMessageBox.information(
-                            None, "Sukces", "Zapisywanie obrazu zakończone sukcesem!")
+                    pushMessageBox(self, "Zapisywanie obrazu zakończone sukcesem!")
                     
                 
                 folder_name = ('/').join(nazwa_pliku[0].split('/')[:-1])
-                utils.openFile(folder_name)
+                openFile(folder_name)
         except:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z zapisem dokumetu")
+            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem dokumetu")
 
     def resetuj(self):
         """
@@ -521,8 +526,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             os.startfile(filepath)
 
         except:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z otwarciem pliku pdf")
+            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z otwarciem pliku pdf")
 
 
 

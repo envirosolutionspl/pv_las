@@ -40,11 +40,7 @@ from PyQt5 import uic
 from .qgis_feed import QgisFeedDialog
 from qgis.gui import *
 from qgis.core import *
-
-"""Wersja wtyczki"""
-plugin_version = '1.0.4'
-plugin_name = 'Fotowoltaika LP'
-
+from . import PLUGIN_NAME, PLUGIN_VERSION
 
 class PhotovoltaicsLP:
     """QGIS Plugin Implementation."""
@@ -69,7 +65,7 @@ class PhotovoltaicsLP:
 
             select_indust_session = self.settings.value('selected_industry')
 
-            self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=plugin_name)
+            self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=PLUGIN_NAME)
             self.feed.initFeed()
 
         # Save reference to the QGIS interface
@@ -217,8 +213,8 @@ class PhotovoltaicsLP:
         self.first_start = True
 
         # informacje o wersji
-        self.dlg.setWindowTitle('%s %s' % (plugin_name, plugin_version))
-        self.dlg.lbl_pluginVersion.setText('%s %s' % (plugin_name, plugin_version))
+        self.dlg.setWindowTitle('%s %s' % (PLUGIN_NAME, PLUGIN_VERSION))
+        self.dlg.lbl_pluginVersion.setText('%s %s' % (PLUGIN_NAME, PLUGIN_VERSION))
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""

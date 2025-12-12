@@ -1,5 +1,6 @@
 
 import xlsxwriter
+from ..constants import EXCEL_TABLE_STYLE, EXCEL_REPORT_COLUMNS
 
 
 class GenerujRaport():
@@ -40,14 +41,7 @@ class GenerujRaport():
         workbook = xlsxwriter.Workbook(nazwa_pliku)
         worksheet = workbook.add_worksheet('Nadleśnictwo {}'.format(nazwa_nadl))
 
-        worksheet.add_table('A1:G{}'.format(len(numery_obszarow)+1), {'data': dane, 'autofilter': False, 'style': 'Table Style Medium 4','banded_rows': 0, 'banded_columns': 1, 'columns': [
-            {'header': 'NR OBSZARU'},
-            {'header': 'ADRES/Y LEŚNY/E'},
-            {'header': 'POWIERZCHNIA OBSZARU (HA)'},
-            {'header': 'ODLEGŁOŚĆ OD DROGI (M)'},
-            {'header': 'RODZAJ DROGI'},
-            {'header': 'ODLEGŁOŚĆ OD LINII ENERGETYCZNEJ (M)'},
-            {'header': 'RODZAJ LINII ENERGETYCZNEJ'},
-        ]})
+        worksheet.add_table('A1:G{}'.format(len(numery_obszarow)+1), {'data': dane, 'autofilter': False, 'style': EXCEL_TABLE_STYLE,'banded_rows': 0, 'banded_columns': 1, 'columns': EXCEL_REPORT_COLUMNS})
+
         worksheet.autofit()
         workbook.close()

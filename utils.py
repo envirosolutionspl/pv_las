@@ -2,7 +2,10 @@ import sys
 import os
 import processing
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, Qgis, QgsMessageLog
+from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.PyQt.QtGui import QIcon
+from . import PLUGIN_NAME
 
 
 def onlyNewest(dataFilelist):
@@ -101,3 +104,66 @@ def createPointsFromPolygon(layer, density=1000):
 
 
     return punktyList
+
+def pushMessageBoxCritical(self, title: str, message: str):
+    msg_box = QMessageBox(
+        QMessageBox.Critical,
+        title,
+        message,
+        QMessageBox.StandardButton.Ok
+    )
+    if hasattr(self, 'plugin_icon'):
+        msg_box.setWindowIcon(QIcon(self.plugin_icon))
+    msg_box.exec()
+
+def pushMessageBox(self, message):
+    msg_box = QMessageBox(
+        QMessageBox.Information,
+        'Informacja',
+        message,
+        QMessageBox.StandardButton.Ok
+    )
+    if hasattr(self, 'plugin_icon'):
+        msg_box.setWindowIcon(QIcon(self.plugin_icon))
+    msg_box.exec()
+
+def pushMessage(iface, message: str) -> None:
+    iface.messageBar().pushMessage(
+        'Informacja',
+        message,
+        level=Qgis.Info,
+        duration=10
+    )
+
+def pushWarning(iface, message: str) -> None:
+    iface.messageBar().pushMessage(
+        'Ostrzeżenie',
+        message,
+        level=Qgis.Warning,
+        duration=10
+    )
+
+
+@staticmethod
+def pushLogInfo(message: str) -> None:
+    QgsMessageLog.logMessage(
+        message,
+        tag=PLUGIN_NAME,
+        level=Qgis.Info
+    )
+
+@staticmethod
+def pushLogWarning(message: str) -> None:
+    QgsMessageLog.logMessage(
+        message,
+        tag=PLUGIN_NAME,
+        level=Qgis.Warning
+    )
+
+@staticmethod
+def pushLogCritical(message: str) -> None:
+    QgsMessageLog.logMessage(
+        message,
+        tag=PLUGIN_NAME,
+        level=Qgis.Critical
+    )

@@ -73,7 +73,7 @@ ATTR_GL = 'g_l'
 ATTR_ID_ADRES = 'id_adres'
 
 # Klasy bonitacyjne gleby uwzględniane w analizie (do filtrowania)
-SOIL_ROLES = {'RV', 'RIV'}
+SOIL_ROLES = ['RV', 'RIV']
 
 # Nazwy warstw tymczasowych i pomocniczych w analizie
 LAYER_NAME_WYDZIELENIA_PO_ANALIZIE = 'wydzielenia_po_analizie'
@@ -160,3 +160,15 @@ LAYOUT_CONFIG = {
         'UNIT_LABEL': "km"
     }
 }
+
+# Konfiguracja tabeli raportu
+EXCEL_REPORT_COLUMNS = [
+    {'header': 'NR OBSZARU'},
+    {'header': 'ADRES/Y LEŚNY/E'},
+    {'header': 'POWIERZCHNIA OBSZARU (HA)'},
+    {'header': 'ODLEGŁOŚĆ OD DROGI (M)'},
+    {'header': 'RODZAJ DROGI'},
+    {'header': 'ODLEGŁOŚĆ OD LINII ENERGETYCZNEJ (M)'},
+    {'header': 'RODZAJ LINII ENERGETYCZNEJ'},
+]
+EXCEL_TABLE_STYLE = 'Table Style Medium 4'
