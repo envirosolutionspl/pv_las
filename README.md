@@ -47,6 +47,10 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 - być gruntami rolnymi,
 - zaliczać się do IV lub poniżej klasy bonitacji gleby.
 
+#### Przykład użycia
+
+![przyklad_uzycia](przyklad_uzycia.gif)
+
 ## EN
 
 The plugin allows for the identification of suitable locations for photovoltaic power stations on land managed by the State Forests (PGL LP).
