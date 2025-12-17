@@ -1,148 +1,134 @@
 # -*- coding: utf-8 -*-
 
-
 import tempfile
 import zipfile
-import requests
 import io
 import os
-import processing
-from ..constants import (
-    BDOT10K_SHP_URL_TEMPLATE, BDOT_FILE_SUFFIX_DROGI, BDOT_FILE_SUFFIX_LINIE,
-    LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG_2180,
-    STYLE_COLOR_BDOT_DROGI, STYLE_WIDTH_BDOT_DROGI,
-    STYLE_COLOR_BDOT_LINIE, STYLE_WIDTH_BDOT_LINIE
-)
-from ..utils import pushLogInfo
-
+import processing 
+from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
+from qgis.PyQt.QtCore import QUrl
 from qgis.core import (
     QgsTask, 
-    QgsMessageLog, 
-    Qgis, 
+    QgsBlockingNetworkRequest, 
     QgsVectorLayer, 
-    QgsLineSymbol, 
-    QgsSingleSymbolRenderer, 
-    QgsProject
+    QgsProject,
+    Qgis
 )
+from ..constants import (
+    BDOT10K_SHP_URL_TEMPLATE, BDOT_FILE_SUFFIX_DROGI, BDOT_FILE_SUFFIX_LINIE,
+    LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG
+)
+from ..utils import pushLogInfo, pushMessage, pushWarning, apply_layer_style
 
 class PobierzBdotTask(QgsTask):
-   
 
-    def __init__(self, description, drogi_layer, linie_layer, features, drogi_list, linie_list, iface, wczytajBdot10kBtn, analizaBtn, resetujBtn):
-       
+    def __init__(self, description, features, iface, temp_path, wczytajBdot10kBtn, analizaBtn, resetujBtn):
         super().__init__(description, QgsTask.CanCancel)
-
-        self.drogi_bdot10k = drogi_layer
-        self.linie_bdot10k=linie_layer
+        self.project = QgsProject.instance()
+        self.temp_dir_path = temp_path
+        
         self.features = features 
-        self.drogi_list = drogi_list
-        self.linie_list=linie_list
-        self.iface=iface
+        self.iface = iface
         self.wczytajBdot10kBtn = wczytajBdot10kBtn
         self.resetujBtn = resetujBtn
         self.analizaBtn = analizaBtn
         self.exception = None
+        
+        self.output_drogi_path = None
+        self.output_linie_path = None
   
     def run(self):
-
-        pushLogInfo('Started task')
-        pushLogInfo('pobieram bdot10k')
-        self.wczytajBdot10kBtn.setEnabled(False)
-        self.resetujBtn.setEnabled(False)
-
-        # pobieranie dróg i linii bdot10k z określonych powiatów
-        tempdir = tempfile.TemporaryDirectory()
-        for i, feature in enumerate(self.features):
-            r = requests.get(BDOT10K_SHP_URL_TEMPLATE.format(feature[1], feature[1]+feature[2]))
-            z = zipfile.ZipFile(io.BytesIO(r.content))
+        """Działa w tle"""
+        pushLogInfo(f'Start RUN. Temp: {self.temp_dir_path}')
+        try:
+            import processing
             
-            extract_path = os.path.join(tempdir.name, str(i))
-            z.extractall(extract_path)
-          
-            for root, dirs, files in os.walk(extract_path):
-                for file in files:
-               
-                    if file.endswith(BDOT_FILE_SUFFIX_DROGI):
-                        
-                        path = os.path.join(root, file)
-                        ddd = QgsVectorLayer(path, LAYER_NAME_BDOT10K_DROGI, "ogr")
-                        self.drogi_list.append(ddd)
+            drogi_files = []
+            linie_files = []
 
+            for i, feature in enumerate(self.features):
+                if self.isCanceled(): return False
+                
+                url = BDOT10K_SHP_URL_TEMPLATE.format(feature[1], feature[1]+feature[2])
+                
+                request = QgsBlockingNetworkRequest()
+                request.get(QNetworkRequest(QUrl(url)))
+                reply = request.reply()
+                
+                if reply.error() != QNetworkReply.NoError:
+                    pushLogInfo(f"Błąd sieci: {reply.errorString()}")
+                    continue
+                    
+                content = reply.content()
+                if not content: continue
 
-                    if file.endswith(BDOT_FILE_SUFFIX_LINIE):
-                        path = os.path.join(root, file)
-                        ddd = QgsVectorLayer(path, LAYER_NAME_BDOT10K_LINIE, "ogr")
-                        self.linie_list.append(ddd)
+                try:
+                    z = zipfile.ZipFile(io.BytesIO(content))
+                    extract_path = os.path.join(self.temp_dir_path, str(i))
+                    z.extractall(extract_path)
+                
+                    for root, dirs, files in os.walk(extract_path):
+                        for file in files:
+                            full_path = os.path.join(root, file)
+                            if file.endswith(BDOT_FILE_SUFFIX_DROGI):
+                                drogi_files.append(full_path)
+                            elif file.endswith(BDOT_FILE_SUFFIX_LINIE):
+                                linie_files.append(full_path)
+                except Exception as e:
+                    pushLogInfo(f"Błąd Zip: {e}")
 
-        # łączenie dróg i linii z określonch dróg i powiatów w pojedyncze warsty 
+            if self.isCanceled(): return False
 
-        parameters = {'LAYERS': self.drogi_list, 
-              'CRS': CRS_EPSG_2180, 
-              'OUTPUT': 'memory:'}
+            if drogi_files:
+                out_path = os.path.join(self.temp_dir_path, 'merged_drogi.gpkg')
+                params = {'LAYERS': drogi_files, 'CRS': CRS_EPSG, 'OUTPUT': out_path}
+                processing.run("native:mergevectorlayers", params)
+                if os.path.exists(out_path):
+                    self.output_drogi_path = out_path
 
-        drogi_polaczone=processing.run("native:mergevectorlayers", parameters)['OUTPUT']
-        
+            if linie_files:
+                out_path = os.path.join(self.temp_dir_path, 'merged_linie.gpkg')
+                params = {'LAYERS': linie_files, 'CRS': CRS_EPSG, 'OUTPUT': out_path}
+                processing.run("native:mergevectorlayers", params)
+                if os.path.exists(out_path):
+                    self.output_linie_path = out_path
+            
+            pushLogInfo("Koniec RUN - sukces")
+            return True
 
-        parameters = {'LAYERS': self.linie_list, 
-                'CRS': CRS_EPSG_2180, 
-                'OUTPUT': 'memory:'}
-        linie_polaczone=processing.run("qgis:mergevectorlayers", parameters)['OUTPUT']
-        self.drogi_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', LAYER_NAME_BDOT10K_DROGI, 'memory')
-        self.drogi_bdot10k.startEditing()
-        pr = self.drogi_bdot10k.dataProvider()
-        attr = drogi_polaczone.dataProvider().fields().toList()
-        pr.addAttributes(attr)
-        self.drogi_bdot10k.updateFields()
-        pr.addFeatures(drogi_polaczone.getFeatures()) 
-        self.drogi_bdot10k.commitChanges()
-
-        # dodanie stylu do warstwy z drogami
-        symbol =  QgsLineSymbol.createSimple(
-                {'color': STYLE_COLOR_BDOT_DROGI, 'outline_color' : STYLE_COLOR_BDOT_DROGI,  'outline_style': 'solid',
-            'outline_width': STYLE_WIDTH_BDOT_DROGI})
-        renderer = QgsSingleSymbolRenderer(symbol)
-        self.drogi_bdot10k.setRenderer(renderer)
-
-        QgsProject.instance().addMapLayer(self.drogi_bdot10k)
-        self.linie_bdot10k = QgsVectorLayer('LineString?crs=epsg:2180', LAYER_NAME_BDOT10K_LINIE, 'memory')
-        self.linie_bdot10k.startEditing()
-        pr = self.linie_bdot10k.dataProvider()
-        attr = linie_polaczone.dataProvider().fields().toList()
-        pr.addAttributes(attr)
-        self.linie_bdot10k.updateFields()
-        pr.addFeatures(linie_polaczone.getFeatures()) 
-        self.linie_bdot10k.commitChanges()
-
-        # dodanie stylu do warstwy z liniami energetycznymi
-        symbol =  QgsLineSymbol.createSimple(
-                {'color': STYLE_COLOR_BDOT_LINIE, 'outline_color' : STYLE_COLOR_BDOT_LINIE,  'outline_style': 'solid',
-            'outline_width': STYLE_WIDTH_BDOT_LINIE})
-        renderer = QgsSingleSymbolRenderer(symbol)
-        self.linie_bdot10k.setRenderer(renderer)
-        QgsProject.instance().addMapLayer(self.linie_bdot10k)
-        self.wczytajBdot10kBtn.setEnabled(False)
-        self.analizaBtn.setEnabled(True)
-
-        if self.isCanceled():
+        except Exception as e:
+            self.exception = e
+            pushLogInfo(f"KRYTYCZNY BŁĄD w RUN: {e}")
             return False
-        self.analizaBtn.setEnabled(True)
-        self.resetujBtn.setEnabled(True)
-        return True
     
     def finished(self, result):
-        if result:
-            pass  
-        else:
-            if self.exception is None:
-                pushLogInfo('finished with false')
-            else:
-                pushLogInfo("exception")
-                raise self.exception
-            self.iface.messageBar().pushWarning("Błąd",
-                                                "Dane BDOT10k nie zostały pobrane.")
-
-    def cancel(self):
-        pushLogInfo('cancel')
-        super().cancel()
-            
+        """Działa w głównym wątku"""
+        pushLogInfo(f"FINISHED START. Wynik: {result}")
         
+        try:
+            if result:
+                if self.output_drogi_path and os.path.exists(self.output_drogi_path):
+                    vlayer = QgsVectorLayer(self.output_drogi_path, LAYER_NAME_BDOT10K_DROGI, "ogr")
+                    if vlayer.isValid():
+                        apply_layer_style(vlayer, LAYER_NAME_BDOT10K_DROGI)
+                        self.project.addMapLayer(vlayer)
+                        pushLogInfo("Dodano drogi.")
+                
+                if self.output_linie_path and os.path.exists(self.output_linie_path):
+                    vlayer = QgsVectorLayer(self.output_linie_path, LAYER_NAME_BDOT10K_LINIE, "ogr")
+                    if vlayer.isValid():
+                        apply_layer_style(vlayer, LAYER_NAME_BDOT10K_LINIE)
+                        self.project.addMapLayer(vlayer)
+                        pushLogInfo("Dodano linie.")
+
+                pushMessage(self.iface, "Pobrano dane BDOT.")
+            else:
+                pushWarning(self.iface, "Nie udało się pobrać danych")
+
+        except Exception as e:
+            pushLogInfo(f"BŁĄD w FINISHED: {e}")
+            pushWarning(self.iface, "Błąd wtyczki")
+        finally:
+            self.analizaBtn.setEnabled(True)
+            self.resetujBtn.setEnabled(True)
+

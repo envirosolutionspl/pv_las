@@ -167,3 +167,26 @@ def pushLogCritical(message: str) -> None:
         tag=PLUGIN_NAME,
         level=Qgis.Critical
     )
+
+
+def apply_layer_style(layer, style_name):
+    """
+    Aplikuje styl do warstwy pobierając konfigurację 1:1 z constants.LAYER_STYLES.
+    """
+    from .constants import LAYER_STYLES
+    from qgis.core import QgsLineSymbol, QgsFillSymbol, QgsSingleSymbolRenderer, QgsWkbTypes
+    
+    if style_name not in LAYER_STYLES:
+        return
+
+    props = LAYER_STYLES[style_name]
+    
+    geom_type = layer.geometryType()
+    
+    if geom_type == QgsWkbTypes.PolygonGeometry:
+        symbol = QgsFillSymbol.createSimple(props)
+    else:
+        symbol = QgsLineSymbol.createSimple(props)
+    if symbol:
+        layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+        layer.triggerRepaint()
