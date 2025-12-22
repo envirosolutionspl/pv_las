@@ -43,7 +43,7 @@ from qgis.core import (
 
 from .modules.dane_bdot_task import PobierzBdotTask
 from .modules.analiza_task import AnalizaTask
-
+from .modules.generuj_wydruk import WydrukGenerator
 from .modules.zapisz_xlsx import ZapiszXLSX
 from .modules.generuj_raport import GenerujRaport
 from .utils import (
@@ -341,157 +341,16 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def generujWydruk(self):
         """
-        Generuje wydruk i zapisuje go jako plik w wybranej lokalizacji. 
-        W razie problemu pojawia się wiadomość.
+        Generuje wydruk i zapisuje go jako plik w wybranej lokalizacji.
         """
-        plugin_dir = os.path.dirname(__file__)
+        generator = WydrukGenerator(self)
+        sciezka_pliku = generator.generuj()
 
-        try:
-            lc = LAYOUT_CONFIG
-            nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
-            self.linie = self.project.mapLayersByName(NAME_LAYER_LINIE)[0]
-            self.drogi = self.project.mapLayersByName(NAME_LAYER_DROGI)[0]
-            self.obszary = self.project.mapLayersByName(NAME_LAYER_OBSZARY)[0]
-            warstwy=[self.obszary, self.drogi, self.linie]
-            typy_obrazu = "jpg (*.jpg);;bitmap (*.bmp);;tiff (*.tiff);; pdf (*.pdf)"
-            opcje = QFileDialog.Options()
-            nazwa_pliku = QFileDialog.getSaveFileName(
-                    None, "Zapisz jako ...", "", filter=typy_obrazu, options=opcje)
+        if sciezka_pliku:
+            folder = os.path.dirname(sciezka_pliku)
+            pushMessage(self.iface, f"Pomyślnie zapisano: {os.path.basename(sciezka_pliku)}")
+            openFile(folder)
             
-            project = self.project
-            layout = QgsPrintLayout(project)
-            layout.initializeDefaults()
-            map = QgsLayoutItemMap(layout)
-            
-            # Map configuration
-            rect_val = lc['MAP']['RECT']
-            map.setRect(*rect_val)
-            extent = QgsRectangle()
-            nadlesnictwo_geom = next(self.nadlesnictwo.getFeatures(), None)
-            if nadlesnictwo_geom:
-                extent = nadlesnictwo_geom.geometry().boundingBox()
-            extent.scale(lc['MAP']['EXTENT_SCALE']) 
-            ms = QgsMapSettings()
-            ms.setLayers(warstwy)  
-            ms.setExtent(extent)
-            map.setExtent(extent)
-            map.setBackgroundColor(QColor(255,255,255))
-            layout.addLayoutItem(map)
-            map.attemptMove(QgsLayoutPoint(lc['MAP']['POS_X'], lc['MAP']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            map.attemptResize(QgsLayoutSize(
-                lc['MAP']['SIZE_W'], lc['MAP']['SIZE_H'], QgsUnitTypes.LayoutMillimeters))
-            
-            # Logo LP
-            logoLP = QgsLayoutItemPicture(layout)
-            logoLP.setResizeMode(QgsLayoutItemPicture.Zoom)
-            logoLP.setMode(QgsLayoutItemPicture.FormatRaster)
-            logoLP.setPicturePath(os.path.join(plugin_dir, lc['LOGO_LP']['PATH']))
-
-            new_dim_lp = [
-                lc['LOGO_LP']['ORIG_W'] * lc['LOGO_LP']['SCALE'], 
-                lc['LOGO_LP']['ORIG_H'] * lc['LOGO_LP']['SCALE']
-            ]
-            logoLP.attemptMove(QgsLayoutPoint(lc['LOGO_LP']['POS_X'], lc['LOGO_LP']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            logoLP.attemptResize(QgsLayoutSize(*new_dim_lp, QgsUnitTypes.LayoutPixels))
-            layout.addLayoutItem(logoLP)
-
-            # Logo Enviro
-            logoEnv = QgsLayoutItemPicture(layout)
-            logoEnv.setResizeMode(QgsLayoutItemPicture.Zoom)
-            logoEnv.setMode(QgsLayoutItemPicture.FormatRaster)
-            logoEnv.setPicturePath(os.path.join(plugin_dir, lc['LOGO_ENV']['PATH']))
-
-            new_dim_env = [
-                lc['LOGO_ENV']['ORIG_W'] * lc['LOGO_ENV']['SCALE'], 
-                lc['LOGO_ENV']['ORIG_H'] * lc['LOGO_ENV']['SCALE']
-            ]
-            logoEnv.attemptMove(QgsLayoutPoint(lc['LOGO_ENV']['POS_X'], lc['LOGO_ENV']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            logoEnv.attemptResize(QgsLayoutSize(*new_dim_env, QgsUnitTypes.LayoutPixels))
-            layout.addLayoutItem(logoEnv)
-
-            # Arrow
-            arrow = QgsLayoutItemPicture(layout)
-            arrow.setResizeMode(QgsLayoutItemPicture.Zoom)
-            arrow.setMode(QgsLayoutItemPicture.FormatRaster)
-            arrow.setPicturePath(os.path.join(plugin_dir, lc['ARROW']['PATH']))
-
-            new_dim_arrow = [
-                lc['ARROW']['ORIG_W'] * lc['ARROW']['SCALE'], 
-                lc['ARROW']['ORIG_H'] * lc['ARROW']['SCALE']
-            ]
-            arrow.attemptMove(QgsLayoutPoint(lc['ARROW']['POS_X'], lc['ARROW']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            arrow.attemptResize(QgsLayoutSize(*new_dim_arrow, QgsUnitTypes.LayoutPixels))
-            layout.addLayoutItem(arrow)
-            
-            # Title
-            title = QgsLayoutItemLabel(layout)
-            nadl_name = nazwa_nadlesnictwa[0] if nazwa_nadlesnictwa else ""
-            title.setText(lc['TITLE']['TEXT_TEMPLATE'].format(nadl_name))
-            title.setFont(QFont('Arial', lc['TITLE']['FONT_SIZE']))
-            title.adjustSizeToText()
-            layout.addLayoutItem(title)
-            title.attemptMove(QgsLayoutPoint(
-                lc['TITLE']['POS_X'], lc['TITLE']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            title.attemptResize(QgsLayoutSize(lc['TITLE']['SIZE_W'], lc['TITLE']['SIZE_H']))
-            title.setFrameEnabled(False)
-
-            # Footer
-            footer = QgsLayoutItemLabel(layout)
-            footer.setText(lc['FOOTER']['TEXT'])
-            footer.setFont(QFont('Arial', lc['FOOTER']['FONT_SIZE']))
-            layout.addLayoutItem(footer)
-            footer.attemptMove(QgsLayoutPoint(
-                lc['FOOTER']['POS_X'], lc['FOOTER']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            footer.setFrameEnabled(False)
-
-            # Legend
-            legend = QgsLayoutItemLegend(layout)
-            legend.setLinkedMap(map)
-            layerTree = QgsLayerTree()
-
-            for warstwa in warstwy:
-                layerTree.addLayer(warstwa)
-
-            legend.model().setRootGroup(layerTree)
-            layout.addLayoutItem(legend)
-            legend.attemptMove(QgsLayoutPoint(
-                lc['LEGEND']['POS_X'], lc['LEGEND']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-            
-            # ScaleBar
-            scaleBar = QgsLayoutItemScaleBar(layout)
-            scaleBar.setStyle('Single Box')
-            scaleBar.setFont(QFont("Arial", 9))
-            scaleBar.applyDefaultSize(QgsUnitTypes.DistanceMeters)
-            scaleBar.setMapUnitsPerScaleBarUnit(1000.0)
-            scaleBar.setSegmentSizeMode(QgsScaleBarSettings.SegmentSizeFitWidth)
-            scaleBar.setMaximumBarWidth(lc['SCALEBAR']['MAX_WIDTH'])
-            scaleBar.setNumberOfSegments(lc['SCALEBAR']['SEGMENTS'])
-            scaleBar.setUnitsPerSegment(1*1000.0)
-            scaleBar.setUnitLabel(lc['SCALEBAR']['UNIT_LABEL'])
-            scaleBar.setLinkedMap(map)
-            layout.addLayoutItem(scaleBar)
-            scaleBar.attemptMove(QgsLayoutPoint(
-                lc['SCALEBAR']['POS_X'], lc['SCALEBAR']['POS_Y'], QgsUnitTypes.LayoutMillimeters))
-          
-            if nazwa_pliku[0]:
-                if  nazwa_pliku[0].endswith('.pdf'):
-
-                    exporter = QgsLayoutExporter(layout)
-                    exporter.exportToPdf(
-                          nazwa_pliku[0],QgsLayoutExporter.PdfExportSettings())
-                    
-                    pushMessage(self.iface, 'Zapisano dokument PDF')
-                else:
-                    exporter = QgsLayoutExporter(layout)
-                    exporter.exportToImage(
-                            nazwa_pliku[0], QgsLayoutExporter.ImageExportSettings())
-                    pushMessage(self.iface, 'Zapisano obraz')
-                    
-                
-                folder_name = ('/').join(nazwa_pliku[0].split('/')[:-1])
-                openFile(folder_name)
-        except:
-            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem dokumetu")
 
     def resetuj(self):
         """

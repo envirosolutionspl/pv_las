@@ -2,10 +2,20 @@ import sys
 import os
 import processing
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, Qgis, QgsMessageLog
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    Qgis,
+    QgsMessageLog,
+    QgsLineSymbol,
+    QgsFillSymbol,
+    QgsSingleSymbolRenderer,
+    QgsWkbTypes
+)
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from . import PLUGIN_NAME
+from .constants import LAYER_STYLES
 
 
 def onlyNewest(dataFilelist):
@@ -173,8 +183,6 @@ def applyLayerStyle(layer, style_name):
     """
     Aplikuje styl do warstwy pobierając konfigurację 1:1 z constants.LAYER_STYLES.
     """
-    from .constants import LAYER_STYLES
-    from qgis.core import QgsLineSymbol, QgsFillSymbol, QgsSingleSymbolRenderer, QgsWkbTypes
     
     if style_name not in LAYER_STYLES:
         return

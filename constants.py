@@ -244,6 +244,7 @@ LAYOUT_CONFIG = {
     },
     'TITLE': {
         'TEXT_TEMPLATE': "Obszary wyznaczone na potrzeby farm fotowoltaicznych - Nadleśnictwo {}",
+        'ATTR_NAME': 'nzw_nadl',
         'FONT_SIZE': 13,
         'POS_X': 40, 'POS_Y': 15,
         'SIZE_W': 190, 'SIZE_H': 10
