@@ -10,25 +10,27 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtWidgets import QMessageBox
 
+from typing import List, Dict, Any, Optional, Tuple
+
 from ..constants import (
     LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE,
-    OUTPUT_LAYERS, VOLTAGE_TYPES, ROAD_TYPE_FOREST,
-    SOIL_ROLES, ATTR_GL, ATTR_ID_ADRES, 
-    ATTR_RODZAJ_ORIGINAL, ATTR_NR_OB, ATTR_ADR_LES, 
-    ATTR_POW, ATTR_ODL, ATTR_RODZAJ, LABEL_SETTINGS,
-    LAYER_NAME_DROGI_LESNE_FILTER, ATTR_KOD, AREA_HA_THRESHOLD,
-    LAYER_KEY_OBSZARY, LAYER_KEY_LINIE, LAYER_KEY_DROGI,
-    RESULT_KEY_GEOMETRY, RESULT_KEY_AREA_HA, RESULT_KEY_ID,
-    RESULT_KEY_NR_OB, RESULT_KEY_DIST, RESULT_KEY_RODZAJ,
-    PROVIDER_MEMORY, URI_TEMPLATE_POLYGON, URI_TEMPLATE_LINE
+    VOLTAGE_TYPES, ROAD_TYPE_FOREST,
+    SOIL_ROLES, LABEL_SETTINGS,
+    LAYER_NAME_DROGI_LESNE_FILTER, AREA_HA_THRESHOLD,
+    PROVIDER_MEMORY, URI_TEMPLATE_POLYGON, URI_TEMPLATE_LINE,
+    OUTPUT_ATTRS, RESULT_KEYS, INPUT_ATTRS,
+    NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI
 )
-from ..utils import pushLogInfo, pushMessage, pushWarning, apply_layer_style
+from ..utils import pushLogInfo, pushMessage, pushWarning, applyLayerStyle
 
 class AnalizaTask(QgsTask):
    
-    def __init__(self, description, wydzielenia_opisy, wydzielenia, oddzialy, drogi_lesne, mapa_bazowa, iface, raportBtn, wydrukBtn, analizaBtn, zapisBtn, resetujBtn):
+    def __init__(self, description, wydzielenia_opisy, wydzielenia, oddzialy, drogi_lesne, mapa_bazowa, iface, raportBtn, wydrukBtn, analizaBtn, zapisBtn, resetujBtn, parent):
         super().__init__(description, QgsTask.CanCancel)
 
+        self.parent = parent
+        self.project = parent.project
+        
         self.iface = iface
         self.raportBtn = raportBtn
         self.wydrukBtn = wydrukBtn
@@ -45,58 +47,15 @@ class AnalizaTask(QgsTask):
         # Wczytywanie danych
         pushLogInfo("AnalizaTask: Wczytywanie obiektów...")
 
-        # Wydzielenia Opisy
-        self.wydzielenia_opisy_feats = [f for f in wydzielenia_opisy.getFeatures()]
-        pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_opisy_feats)} wydzielenia_opisy")
-        
-        # Wydzielenia
-        self.wydzielenia_feats = [f for f in wydzielenia.getFeatures()]
-        pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_feats)} wydzielenia")
-        
-        # Oddzialy
-        self.oddzialy_feats = [f for f in oddzialy.getFeatures() if f.hasGeometry()]
-        pushLogInfo(f"AnalizaTask: Wczytano {len(self.oddzialy_feats)} oddzialy")
+        # Wydzielnie i oddziały
+        self._loadSourceLayers(wydzielenia_opisy, wydzielenia, oddzialy)
         
         # Drogi Leśne
-        # najpierw próba po nazwie, jeżeli inaczej się nazywa to po indeksie
-        self.drogi_lesne_feats = []
-        try:
-            fields = drogi_lesne.fields()
-            idx = fields.indexOf(ATTR_KOD)
-            if idx == -1: idx = 1 # Fallback to 1
-            
-            count_total = 0
-            for f in drogi_lesne.getFeatures():
-                count_total += 1
-                if f.hasGeometry():
-                    val = f[idx]
-                    if str(val) == LAYER_NAME_DROGI_LESNE_FILTER:
-                       self.drogi_lesne_feats.append(f)
-            
-            pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_lesne_feats)} drogi_lesne (z {count_total}) z filtrem {LAYER_NAME_DROGI_LESNE_FILTER}")
-        except Exception as e:
-            pushLogInfo(f"AnalizaTask Błąd wczytywania drogi_lesne: {e}")
-
-        # warstwy BDOT
-        project = QgsProject.instance()
+        self._loadForestRoads(drogi_lesne)
         
-        drogi_layers = project.mapLayersByName(LAYER_NAME_BDOT10K_DROGI)
-        if drogi_layers:
-            self.drogi_publiczne_feats = [f for f in drogi_layers[0].getFeatures() if f.hasGeometry()]
-            pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_publiczne_feats)} drogi_publiczne")
-        else:
-            self.drogi_publiczne_feats = None
-            pushLogInfo("AnalizaTask: Warstwa BDOT Drogi NIE znaleziona")
+        # Warstwy BDOT
+        self._loadBDOTLayers()
 
-        linie_layers = project.mapLayersByName(LAYER_NAME_BDOT10K_LINIE)
-        if linie_layers:
-            # Filtrowanie linii według rodzaju napięcia
-            self.linie_feats = [f for f in linie_layers[0].getFeatures() 
-                                if f.hasGeometry() and f[ATTR_RODZAJ_ORIGINAL] in self.rodzaj_napiecia]
-            pushLogInfo(f"AnalizaTask: Wczytano {len(self.linie_feats)} linie")
-        else:
-            self.linie_feats = None
-            pushLogInfo("AnalizaTask: Warstwa BDOT Linie NIE znaleziona")
 
     def run(self):
         """
@@ -104,346 +63,389 @@ class AnalizaTask(QgsTask):
         """
         pushLogInfo('Rozpoczęto wykonywanie AnalizaTask')
         
-        try:
-            # Pozwól na uruchomienie nawet przy pustych listach, aby zobaczyć logi, ale sprawdź istnienie
-            if self.drogi_publiczne_feats is None:
-                 pushLogInfo("Ostrzeżenie: drogi_publiczne_feats jest None")
-            if self.linie_feats is None:
-                 pushLogInfo("Ostrzeżenie: linie_feats jest None")
-                 
-            # Filtrowanie wydzielenia po klasie bonitacji
-            valid_id_adres = set()
-            for f in self.wydzielenia_opisy_feats:
-                if self.isCanceled(): return False
-                
-                gl_val = str(f[ATTR_GL])
-                for role in SOIL_ROLES:
-                    if role in gl_val:
-                        valid_id_adres.add(f[ATTR_ID_ADRES])
-                        break
+        if self.drogi_publiczne_feats is None:
+            pushLogInfo("Ostrzeżenie: drogi_publiczne_feats jest None")
+        if self.linie_feats is None:
+            pushLogInfo("Ostrzeżenie: linie_feats jest None")
             
-            if not valid_id_adres:
-                pushLogInfo("Brak wydzieleń o wymaganej klasie bonitacji.")
-                return False
 
-            # Pobieranie geometrii dla valid IDs
-            relevant_features = []
-            for f in self.wydzielenia_feats:
-                if self.isCanceled(): return False
-                
-                idf = f[ATTR_ID_ADRES]
-                if idf in valid_id_adres:
-                    relevant_features.append(f)
-            
-            if not relevant_features:
-                pushLogInfo("Nie znaleziono odpowiednich obiektów dla poprawnych ID")
-                return False
-
-            # Operacje geometryczne: Union -> MultipartToSingle
-            geometries = [f.geometry() for f in relevant_features]
-            if not geometries: return False
-            
-            combined_geom = QgsGeometry.unaryUnion(geometries)
-            
-            if self.isCanceled(): return False
-
-            single_parts = []
-            if combined_geom.isMultipart():
-                single_parts = combined_geom.asGeometryCollection()
-            else:
-                single_parts = [combined_geom]
-
-            # Filtracja obszarów po powierzchni > 1.5 ha
-            obszary_valid = []
-            for i, geom in enumerate(single_parts):
-                area_ha = geom.area() / 10000.0
-                if area_ha > AREA_HA_THRESHOLD:
-                    obszary_valid.append({
-                        RESULT_KEY_GEOMETRY: geom,
-                        RESULT_KEY_AREA_HA: round(area_ha, 2),
-                        RESULT_KEY_ID: i+1
-                    })
-
-            if not obszary_valid:
-                pushLogInfo(f"Brak obszarów > {AREA_HA_THRESHOLD}ha")
-                return False
-            
-            pushLogInfo(f"Znaleziono {len(obszary_valid)} poprawnych obszarów > {AREA_HA_THRESHOLD}ha")
-
-            # Określenie adresów (adr_les)
-            for obszar in obszary_valid:
-                if self.isCanceled(): return False
-                
-                contained_adresses = []
-                geom_obszar = obszar[RESULT_KEY_GEOMETRY]
-                
-                for f in relevant_features:
-                    if geom_obszar.boundingBox().intersects(f.geometry().boundingBox()):
-                        if geom_obszar.contains(f.geometry()):
-                            try:
-                                adr = f[OUTPUT_LAYERS[LAYER_KEY_OBSZARY]['attributes'][1]]
-                            except KeyError:
-                                adr = f[2]
-                            contained_adresses.append(str(adr))
-                
-                obszar[OUTPUT_LAYERS[LAYER_KEY_OBSZARY]['attributes'][1]] = '\n'.join(contained_adresses)
-
-            # Analiza najbliższych linii i drog
-            final_obszary = []
-            final_lines = []
-            final_roads = []
-
-            for obszar in obszary_valid:
-                if self.isCanceled(): return False
-                
-                centroid = obszar[RESULT_KEY_GEOMETRY].centroid()
-                point_xy = QgsPointXY(centroid.asPoint())
-                
-                # najbliższa linia
-                min_dist = float('inf')
-                nearest_feat = None
-                
-                if self.linie_feats:
-                    for lf in self.linie_feats:
-                        dist_sqr, close_pt, _, _ = lf.geometry().closestSegmentWithContext(point_xy)
-                        if dist_sqr < min_dist:
-                            min_dist = dist_sqr
-                            nearest_feat = lf
-                
-                if nearest_feat:
-                    real_dist = min_dist ** 0.5
-                    final_lines.append({
-                        RESULT_KEY_NR_OB: obszar[RESULT_KEY_ID],
-                        RESULT_KEY_DIST: real_dist,
-                        RESULT_KEY_RODZAJ: self.rodzaj_napiecia.get(nearest_feat[ATTR_RODZAJ_ORIGINAL], 'unknown'),
-                        RESULT_KEY_GEOMETRY: nearest_feat.geometry()
-                    })
-                
-                # Drogi publiczne
-                min_dist_pub = float('inf')
-                nearest_pub = None
-                nearest_pt_pub = None
-                
-                if self.drogi_publiczne_feats:
-                    for df in self.drogi_publiczne_feats:
-                        dist_sqr, close_pt, _, _ = df.geometry().closestSegmentWithContext(point_xy)
-                        if dist_sqr < min_dist_pub:
-                            min_dist_pub = dist_sqr
-                            nearest_pub = df
-                            nearest_pt_pub = close_pt
-                        
-                # Drogi leśne
-                min_dist_for = float('inf')
-                nearest_for = None
-                nearest_pt_for = None
-                
-                if self.drogi_lesne_feats:
-                    for df in self.drogi_lesne_feats:
-                        dist_sqr, close_pt, _, _ = df.geometry().closestSegmentWithContext(point_xy)
-                        if dist_sqr < min_dist_for:
-                            min_dist_for = dist_sqr
-                            nearest_for = df
-                            nearest_pt_for = close_pt
-                
-                # Porównanie
-                chosen_road = None
-                chosen_dist = float('inf')
-                chosen_type = ''
-                chosen_geom = None
-                
-                dist_pub_real = min_dist_pub ** 0.5 if min_dist_pub != float('inf') else float('inf')
-                dist_for_real = min_dist_for ** 0.5 if min_dist_for != float('inf') else float('inf')
-                
-                if dist_pub_real == float('inf') and dist_for_real == float('inf'):
-                    pass
-                elif dist_pub_real <= dist_for_real:
-                    if nearest_pub:
-                        chosen_dist = dist_pub_real
-                        try:
-                            chosen_type = nearest_pub[ATTR_RODZAJ_ORIGINAL]
-                        except KeyError:
-                            chosen_type = str(nearest_pub.attributes()[0])
-
-                        chosen_geom = nearest_pub.geometry()
-                        
-                        is_forest = False
-                        if self.oddzialy_feats:
-                            for oddz in self.oddzialy_feats:
-                                if nearest_pub.geometry().intersects(oddz.geometry()):
-                                    is_forest = True
-                                    break
-                        if is_forest:
-                            chosen_type = ROAD_TYPE_FOREST
-                else:
-                    if nearest_for:
-                        chosen_dist = dist_for_real
-                        chosen_type = ROAD_TYPE_FOREST
-                        chosen_geom = nearest_for.geometry()
-
-                if chosen_geom:
-                    final_roads.append({
-                        RESULT_KEY_NR_OB: obszar[RESULT_KEY_ID],
-                        RESULT_KEY_DIST: chosen_dist,
-                        RESULT_KEY_RODZAJ: chosen_type,
-                        RESULT_KEY_GEOMETRY: chosen_geom
-                    })
-                
-                # Dodaj finalny obszar do wyników
-                final_obszary.append(obszar)
-
-            self.result_data = {
-                'obszary': final_obszary,
-                'lines': final_lines,
-                'roads': final_roads
-            }
-            pushLogInfo(f"AnalizaTask Zakończono analizę. Linie: {len(final_lines)}, Drogi: {len(final_roads)}")
-            return True
-
-        except Exception as e:
-            self.exception = e
-            pushLogInfo(f"AnalizaTask Wyjątek: {e}")
+        # Filtracja wydzielni (Poligon) po klasie bonitacji
+        if self.isCanceled(): return False
+        relevant_features = self._getPolygonsBySoil()
+        if not relevant_features:
+            pushLogInfo("Nie znaleziono poprawnych obszarów")
             return False
+        pushLogInfo(f"Znaleziono {len(relevant_features)} poprawnych obszarów")
+
+        # Operacje geometryczne
+        if self.isCanceled(): return False
+        single_parts = self._processGeometry(relevant_features)
+        if not single_parts:
+            pushLogInfo("Nie znaleziono odpowiednich obiektów dla poprawnych ID")
+            return False
+        pushLogInfo(f"Operacje geometryczne: {len(single_parts)} obszarów")
+
+        # Filtracja obszarów po powierzchni 
+        if self.isCanceled(): return False
+        obszary_valid = self._filterValidAreaByArea(single_parts)
+        if not obszary_valid:
+            pushLogInfo("Nie znaleziono odpowiednich obszarów > {AREA_HA_THRESHOLD}ha")
+            return False
+        pushLogInfo(f"Znaleziono {len(obszary_valid)} poprawnych obszarów > {AREA_HA_THRESHOLD}ha")
+
+        # Przypisanie adresów leśnych (adr_les) do obszarów
+        if self.isCanceled(): return False
+        obszary_valid = self._assignForestAdresses(obszary_valid, relevant_features)
+        if not obszary_valid:
+            pushLogInfo("Nie udało się określić adresów")
+            return False
+        pushLogInfo(f"Określenie adresów: {len(obszary_valid)} obszarów")
+
+
+        # Analiza najbliższych linii i drog
+        final_lines = []
+        final_roads = []
+        
+        for obszar in obszary_valid:
+            if self.isCanceled(): return False
+            
+            line_data, road_data = self._processProximityForArea(obszar)
+            
+            if line_data: final_lines.append(line_data)
+            if road_data: final_roads.append(road_data)
+
+        self.result_data = {
+            'obszary': obszary_valid,
+            'lines': final_lines,
+            'roads': final_roads
+        }
+        pushLogInfo(f"Analiza zakończona. Linie: {len(final_lines)}, Drogi: {len(final_roads)}")
+        return True
 
     def finished(self, result):
+        if self.isCanceled(): 
+            pushMessage(self.iface, "Analiza anulowana")
+            self._toggleButtons(False)
+            return
+        
         if result and self.result_data:
-            try:
-                # Obszary
-                self.obszary_layer = QgsVectorLayer(URI_TEMPLATE_POLYGON, OUTPUT_LAYERS[LAYER_KEY_OBSZARY]['name'], PROVIDER_MEMORY)
-                pr = self.obszary_layer.dataProvider()
-                self.obszary_layer.startEditing()
-                
-                pr.addAttributes([
-                    QgsField(ATTR_NR_OB, QVariant.Int),
-                    QgsField(ATTR_ADR_LES, QVariant.String),
-                    QgsField(ATTR_POW, QVariant.Double, len=10, prec=2)
-                ])
-                self.obszary_layer.updateFields()
-                
-                feats = []
-                for item in self.result_data['obszary']:
-                    f = QgsFeature()
-                    f.setGeometry(item[RESULT_KEY_GEOMETRY])
-                    f.setAttributes([item[RESULT_KEY_ID], item[OUTPUT_LAYERS[LAYER_KEY_OBSZARY]['attributes'][1]], item[RESULT_KEY_AREA_HA]])
-                    feats.append(f)
-                pr.addFeatures(feats)
-                self.obszary_layer.commitChanges()
-                
-                # Stylizacja Obszary
-                apply_layer_style(self.obszary_layer, OUTPUT_LAYERS[LAYER_KEY_OBSZARY]['name'])
-                
-                # Etykiety
-                ls = QgsPalLayerSettings()
-                tf = QgsTextFormat()
-                tf.setFont(QFont(LABEL_SETTINGS['font_family'], LABEL_SETTINGS['font_size']))
-                color_parts = [int(x.strip()) for x in LABEL_SETTINGS['color_rgb'].split(',')]
-                tf.setColor(QColor(*color_parts))
-                
-                bs = QgsTextBufferSettings()
-                bs.setEnabled(True)
-                bs.setSize(LABEL_SETTINGS['buffer_size'])
-                tf.setBuffer(bs)
-                
-                ls.setFormat(tf)
-                ls.fieldName = ATTR_NR_OB
-                ls.xOffset = LABEL_SETTINGS['x_offset']
-                ls.yOffset = LABEL_SETTINGS['y_offset']
-                ls.enabled = True
-                
-                self.obszary_layer.setLabeling(QgsVectorLayerSimpleLabeling(ls))
-                self.obszary_layer.setLabelsEnabled(True)
+            # Przygotowanie warstw
+            self.obszary_layer = self._prepareLayer(NAME_LAYER_OBSZARY, URI_TEMPLATE_POLYGON, self.result_data['obszary'])
+            self.linie_layer = self._prepareLayer(NAME_LAYER_LINIE, URI_TEMPLATE_LINE, self.result_data['lines'])
+            self.drogi_layer = self._prepareLayer(NAME_LAYER_DROGI, URI_TEMPLATE_LINE, self.result_data['roads'])
 
-                QgsProject.instance().addMapLayer(self.obszary_layer)
+            # Ustawienie etykietowania tylko dla obszarów
+            self._applyObszaryLabeling(self.obszary_layer)
 
-                # Linie
-                self.linie_layer = QgsVectorLayer(URI_TEMPLATE_LINE, OUTPUT_LAYERS[LAYER_KEY_LINIE]['name'], PROVIDER_MEMORY)
-                pr = self.linie_layer.dataProvider()
-                self.linie_layer.startEditing()
-                pr.addAttributes([
-                    QgsField(ATTR_NR_OB, QVariant.Int),
-                    QgsField(ATTR_ODL, QVariant.Double, len=10, prec=2),
-                    QgsField(ATTR_RODZAJ, QVariant.String)
-                ])
-                self.linie_layer.updateFields()
-                
-                feats = []
-                for item in self.result_data['lines']:
-                    f = QgsFeature()
-                    f.setGeometry(item[RESULT_KEY_GEOMETRY])
-                    f.setAttributes([item[RESULT_KEY_NR_OB], item[RESULT_KEY_DIST], item[RESULT_KEY_RODZAJ]])
-                    feats.append(f)
-                pr.addFeatures(feats)
-                self.linie_layer.commitChanges()
-                
-                # Stylizacja Linie
-                apply_layer_style(self.linie_layer, OUTPUT_LAYERS[LAYER_KEY_LINIE]['name'])
-                QgsProject.instance().addMapLayer(self.linie_layer)
+            # Dodanie do projektu i widoczność
+            self.project.addMapLayers([self.obszary_layer, self.linie_layer, self.drogi_layer])
+            self._setupLayerVisibility()
+            self._zoomToResults()
 
-                # Drogi
-                self.drogi_layer = QgsVectorLayer(URI_TEMPLATE_LINE, OUTPUT_LAYERS[LAYER_KEY_DROGI]['name'], PROVIDER_MEMORY)
-                pr = self.drogi_layer.dataProvider()
-                self.drogi_layer.startEditing()
-                pr.addAttributes([
-                    QgsField(ATTR_NR_OB, QVariant.Int),
-                    QgsField(ATTR_ODL, QVariant.Double, len=10, prec=2),
-                    QgsField(ATTR_RODZAJ, QVariant.String)
-                ])
-                self.drogi_layer.updateFields()
-                
-                feats = []
-                for item in self.result_data['roads']:
-                    f = QgsFeature()
-                    f.setGeometry(item[RESULT_KEY_GEOMETRY])
-                    f.setAttributes([item[RESULT_KEY_NR_OB], item[RESULT_KEY_DIST], item[RESULT_KEY_RODZAJ]])
-                    feats.append(f)
-                pr.addFeatures(feats)
-                self.drogi_layer.commitChanges()
-                
-                # Stylizacja Drogi
-                apply_layer_style(self.drogi_layer, OUTPUT_LAYERS[LAYER_KEY_DROGI]['name'])
-                QgsProject.instance().addMapLayer(self.drogi_layer)
-                
-                # Aktualizacja widoczności
-                layers_to_show = [self.obszary_layer.id(), self.linie_layer.id(), self.drogi_layer.id(), self.mapa_bazowa.id()]
-                root = QgsProject.instance().layerTreeRoot()
-                for child in root.children():
-                    if child.layerId() not in layers_to_show:
-                        child.setItemVisibilityChecked(False)
-                    else:
-                        child.setItemVisibilityChecked(True)
-                
-                # Przybliżenie
-                extent = self.obszary_layer.extent()
-                if extent.isEmpty():
-                    return
-                extent.grow(extent.width() * 0.1)
-                self.iface.mapCanvas().setExtent(extent)
-                self.iface.mapCanvas().refresh()
-
-                pushMessage(self.iface, "Analiza zakończona sukcesem")
-
-                # Włącz przyciski
-                self.raportBtn.setEnabled(True)
-                self.wydrukBtn.setEnabled(True)
-                self.zapisBtn.setEnabled(True)
-                self.resetujBtn.setEnabled(True)
-
-            except Exception as e:
-                pushLogInfo(f"Błąd w finished: {e}")
-                pushWarning(self.iface, "Błąd podczas tworzenia warstw wynikowych.")
-                if self.exception: 
-                    raise self.exception
-                else: 
-                     raise e
-
+            pushMessage(self.iface, "Analiza zakończona sukcesem")
+            self._toggleButtons(True)
         else:
-            if self.exception:
-                pushWarning(self.iface, f"Błąd analizy: {self.exception}")
-            else:
-                pushWarning(self.iface, "Brak wyników analizy lub zadanie anulowano.")
-            
-            self.resetujBtn.setEnabled(True)
-            self.analizaBtn.setEnabled(True)
+            self._handleFailure()
 
     def cancel(self):
         pushLogInfo('AnalizaTask anulowane')
         super().cancel()
+
+
+    # FUNKCJE POMOCNICZE
+
+    # -- Funkcje pomocnicze do init --
+    
+    def _loadSourceLayers(self, wydzielenia_opisy: QgsVectorLayer, wydzielenia: QgsVectorLayer, oddzialy: QgsVectorLayer) -> None:
+
+        self.wydzielenia_opisy_feats = [f for f in wydzielenia_opisy.getFeatures()]
+        pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_opisy_feats)} wydzielenia_opisy")
+        
+        self.wydzielenia_feats = [f for f in wydzielenia.getFeatures()]
+        pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_feats)} wydzielenia")
+    
+        self.oddzialy_feats = [f for f in oddzialy.getFeatures() if f.hasGeometry()]
+        pushLogInfo(f"AnalizaTask: Wczytano {len(self.oddzialy_feats)} oddzialy")
+
+    def _loadForestRoads(self, drogi_lesne: QgsVectorLayer) -> None:
+
+        # Drogi Leśne
+        self.drogi_lesne_feats = []
+        try:
+            fields = drogi_lesne.fields()
+            idx = fields.indexOf(INPUT_ATTRS['kod'])
+            if idx == -1: idx = 1 # Fallback to 1
+            
+            count_total = 0
+            for f in drogi_lesne.getFeatures():
+                count_total += 1
+
+                if not f.hasGeometry():
+                    continue
+
+                if str(f[idx]) != LAYER_NAME_DROGI_LESNE_FILTER:
+                    continue
+                
+                self.drogi_lesne_feats.append(f)
+            
+            pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_lesne_feats)} drogi_lesne (z {count_total}) z filtrem {LAYER_NAME_DROGI_LESNE_FILTER}")
+        except KeyError as e:
+            pushLogInfo(f"AnalizaTask: Błąd konfiguracji atrybutów (brak klucza): {e}")
+        except AttributeError as e:
+            pushLogInfo(f"AnalizaTask: Błąd dostępu do obiektu warstwy: {e}")
+        except Exception as e:
+            pushLogInfo(f"AnalizaTask: Nieoczekiwany błąd: {e}")
+
+    def _loadBDOTLayers(self) -> None:
+        drogi_layers = self.project.mapLayersByName(LAYER_NAME_BDOT10K_DROGI)
+        if drogi_layers:
+            self.drogi_publiczne_feats = [f for f in drogi_layers[0].getFeatures() if f.hasGeometry()]
+            pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_publiczne_feats)} drogi_publiczne")
+        else:
+            self.drogi_publiczne_feats = None
+            pushLogInfo("AnalizaTask: Warstwa BDOT Drogi NIE znaleziona")
+
+        linie_layers = self.project.mapLayersByName(LAYER_NAME_BDOT10K_LINIE)
+        if linie_layers:
+            # Filtrowanie linii według rodzaju napięcia
+            self.linie_feats = [f for f in linie_layers[0].getFeatures() 
+                                if f.hasGeometry() and f[INPUT_ATTRS['rodzaj']] in self.rodzaj_napiecia]
+            pushLogInfo(f"AnalizaTask: Wczytano {len(self.linie_feats)} linie")
+        else:
+            self.linie_feats = None
+            pushLogInfo("AnalizaTask: Warstwa BDOT Linie NIE znaleziona")
+
+    # -- Funkcje pomocnicze do run --
+
+    def _getPolygonsBySoil(self) -> List[QgsFeature]:
+        # Znajdź ID adresów, które spełniają warunek gleby (z opisów)
+        valid_ids = {
+            f[INPUT_ATTRS['id_adres']] 
+            for f in self.wydzielenia_opisy_feats 
+            if any(role in str(f[INPUT_ATTRS['gl']]) for role in SOIL_ROLES)
+        }
+
+        if not valid_ids:
+            return []
+
+        # Zwróć POLIGONY (z wydzielenia_feats), które mają te ID
+        return [f for f in self.wydzielenia_feats if f[INPUT_ATTRS['id_adres']] in valid_ids]
+
+    def _filterValidAreaByArea(self, geometries: List[QgsGeometry]) -> List[Dict[str, Any]]:
+        # Filtracja obszarów po powierzchni
+        obszary_valid = []
+        for i, geom in enumerate(geometries):
+            area_ha = geom.area() / 10000.0
+            if area_ha > AREA_HA_THRESHOLD:
+                obszary_valid.append({
+                    RESULT_KEYS['geometry']: geom,
+                    RESULT_KEYS['area_ha']: round(area_ha, 2),
+                    RESULT_KEYS['id']: i+1
+                })        
+        return obszary_valid
+
+    def _processGeometry(self, features: List[QgsFeature]) -> List[QgsGeometry]:
+        # Zwraca geometry
+        geometries = [f.geometry() for f in features if f.hasGeometry()]
+        if not geometries: return []
+        
+        combined_geom = QgsGeometry.unaryUnion(geometries)
+        
+        if combined_geom.isMultipart():
+            return combined_geom.asGeometryCollection()
+            
+        return [combined_geom]
+        
+    def _assignForestAdresses(self, obszary_valid: List[Dict[str, Any]], source_polygons: List[QgsFeature]) -> List[Dict[str, Any]]:
+        for obszar in obszary_valid:
+            if self.isCanceled(): return []
+            
+            contained_adresses = []
+            geom_obszar = obszar[RESULT_KEYS['geometry']]
+            
+            for f in source_polygons:
+                # Szybki test bounding boxa przed drogim intersects/contains
+                if geom_obszar.boundingBox().intersects(f.geometry().boundingBox()):
+                    if geom_obszar.contains(f.geometry()):
+                        try:
+                            adr = f[INPUT_ATTRS['adr_les']]
+                        except KeyError:
+                            adr = f.attributes()[2] # Fallback
+                        contained_adresses.append(str(adr))
+            
+            obszar[OUTPUT_ATTRS['adres_lesny']] = '\n'.join(list(set(contained_adresses))) # set usuwa duplikaty
+        
+        return obszary_valid
+
+    def _getNearestFeature(self, point_xy: QgsPointXY, features: List[QgsFeature]) -> Tuple[float, Optional[QgsFeature]]:
+        """Zwraca (minimalna_odległość_kwadratowa, najbliższy_obiekt) lub (inf, None)."""
+        if not features:
+            return float('inf'), None
+        
+        min_dist_sqr = float('inf')
+        nearest_feat = None
+        
+        for f in features:
+            dist_sqr, _, _, _ = f.geometry().closestSegmentWithContext(point_xy)
+            if dist_sqr < min_dist_sqr:
+                min_dist_sqr = dist_sqr
+                nearest_feat = f
+                
+        return min_dist_sqr, nearest_feat
+
+    def _processProximityForArea(self, obszar: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+        """Przeprowadza analizę linii i dróg dla pojedynczego obszaru."""
+        centroid = obszar[RESULT_KEYS['geometry']].centroid()
+        point_xy = QgsPointXY(centroid.asPoint())
+        nr_ob = obszar[RESULT_KEYS['id']]
+
+        line_result = self._analyzeNearestLine(nr_ob, point_xy)
+        road_result = self._analyzeNearestRoad(nr_ob, point_xy)
+
+        return line_result, road_result
+
+    def _analyzeNearestLine(self, nr_ob: int, point_xy: QgsPointXY) -> Optional[Dict[str, Any]]:
+        dist_sqr, feat = self._getNearestFeature(point_xy, self.linie_feats)
+        if not feat:
+            return None
+            
+        return {
+            RESULT_KEYS['nr_ob']: nr_ob,
+            RESULT_KEYS['dist']: dist_sqr ** 0.5,
+            RESULT_KEYS['rodzaj']: self.rodzaj_napiecia.get(feat[INPUT_ATTRS['rodzaj']], 'unknown'),
+            RESULT_KEYS['geometry']: feat.geometry()
+        }
+
+    def _analyzeNearestRoad(self, nr_ob: int, point_xy: QgsPointXY) -> Optional[Dict[str, Any]]:
+        # Szukamy obu rodzajów dróg
+        d_pub_sqr, f_pub = self._getNearestFeature(point_xy, self.drogi_publiczne_feats)
+        d_for_sqr, f_for = self._getNearestFeature(point_xy, self.drogi_lesne_feats)
+
+        # Logika wyboru drogi
+        chosen_dist_sqr, chosen_feat, chosen_type = float('inf'), None, ''
+
+        if d_pub_sqr <= d_for_sqr and f_pub:
+            chosen_dist_sqr, chosen_feat = d_pub_sqr, f_pub
+            try:
+                chosen_type = f_pub[INPUT_ATTRS['rodzaj']]
+            except KeyError:
+                chosen_type = str(f_pub.attributes()[0])
+                
+            # Specyficzny warunek: droga publiczna w lesie (przecinająca oddziały)
+            if self.oddzialy_feats:
+                for oddz in self.oddzialy_feats:
+                    if f_pub.geometry().intersects(oddz.geometry()):
+                        chosen_type = ROAD_TYPE_FOREST
+                        break
+        elif f_for:
+            chosen_dist_sqr, chosen_feat = d_for_sqr, f_for
+            chosen_type = ROAD_TYPE_FOREST
+
+        if not chosen_feat:
+            return None
+
+        return {
+            RESULT_KEYS['nr_ob']: nr_ob,
+            RESULT_KEYS['dist']: chosen_dist_sqr ** 0.5,
+            RESULT_KEYS['rodzaj']: chosen_type,
+            RESULT_KEYS['geometry']: chosen_feat.geometry()
+        }
+
+    # -- Funkcje pomocnicze do finished --
+
+    def _prepareLayer(self, layer_name: str, uri: str, data_list: List[Dict[str, Any]]) -> QgsVectorLayer:
+        """Mapowanie danych do warstwy"""
+        layer = QgsVectorLayer(uri, layer_name, PROVIDER_MEMORY)
+        pr = layer.dataProvider()
+        layer.startEditing()
+
+        # Definiujemy kolumny (pola) w zależności od nazwy warstwy
+        if layer_name == NAME_LAYER_OBSZARY:
+            pr.addAttributes([
+                QgsField(OUTPUT_ATTRS['nr_ob'], QVariant.Int),
+                QgsField(OUTPUT_ATTRS['adres_lesny'], QVariant.String),
+                QgsField(OUTPUT_ATTRS['powierzchnia'], QVariant.Double, len=10, prec=2)
+            ])
+        elif layer_name == NAME_LAYER_LINIE or layer_name == NAME_LAYER_DROGI:
+            # Dla linii i dróg kolumny są takie same
+            pr.addAttributes([
+                QgsField(OUTPUT_ATTRS['nr_ob'], QVariant.Int),
+                QgsField(OUTPUT_ATTRS['odleglosc'], QVariant.Double, len=10, prec=2),
+                QgsField(OUTPUT_ATTRS['rodzaj'], QVariant.String)
+            ])
+        
+        layer.updateFields()
+
+        # Dodajemy obiekty
+        for item in data_list:
+            f = QgsFeature()
+            f.setGeometry(item[RESULT_KEYS['geometry']])
+            
+            # Przypisujemy wartości do kolumn w zależności od typu warstwy
+            if layer_name == NAME_LAYER_OBSZARY:
+                f.setAttributes([
+                    item[RESULT_KEYS['id']], 
+                    item[OUTPUT_ATTRS['adres_lesny']], 
+                    item[RESULT_KEYS['area_ha']]
+                ])
+            elif layer_name == NAME_LAYER_LINIE or layer_name == NAME_LAYER_DROGI:
+                f.setAttributes([
+                    item[RESULT_KEYS['nr_ob']], 
+                    item[RESULT_KEYS['dist']], 
+                    item[RESULT_KEYS['rodzaj']]
+                ])
+            
+            pr.addFeatures([f])
+
+        layer.commitChanges()
+        applyLayerStyle(layer, layer_name)
+        return layer
+
+    def _applyObszaryLabeling(self, layer: QgsVectorLayer) -> None:
+        """Ustawia styl etykietowania obszarów."""
+        ls = QgsPalLayerSettings()
+        tf = QgsTextFormat()
+
+        tf.setFont(QFont(LABEL_SETTINGS['font_family'], LABEL_SETTINGS['font_size']))
+        color_parts = [int(x.strip()) for x in LABEL_SETTINGS['color_rgb'].split(',')]
+        tf.setColor(QColor(*color_parts))
+        bs = QgsTextBufferSettings()
+        bs.setEnabled(True)
+        bs.setSize(LABEL_SETTINGS['buffer_size'])
+        tf.setBuffer(bs)
+
+        ls.setFormat(tf)
+        ls.fieldName = OUTPUT_ATTRS['nr_ob']
+        ls.xOffset = LABEL_SETTINGS['x_offset']
+        ls.yOffset = LABEL_SETTINGS['y_offset']
+        ls.placement = QgsPalLayerSettings.AroundPoint 
+        
+        ls.enabled = True
+
+        layer.setLabeling(QgsVectorLayerSimpleLabeling(ls))
+        layer.setLabelsEnabled(True)
+
+    def _setupLayerVisibility(self) -> None:
+        """Pokazuje tylko wyniki i mapę bazową."""
+        layers_to_show = [self.obszary_layer.id(), self.linie_layer.id(), self.drogi_layer.id(), self.mapa_bazowa.id()]
+        for child in self.project.layerTreeRoot().children():
+            child.setItemVisibilityChecked(child.layerId() in layers_to_show)
+
+    def _zoomToResults(self) -> None:
+        """Przybliża do wyników."""
+        extent = self.obszary_layer.extent()
+        if not extent.isEmpty():
+            self.iface.mapCanvas().setExtent(extent.buffered(extent.width() * 0.1))
+            self.iface.mapCanvas().refresh()
+
+    def _toggleButtons(self, success: bool) -> None:
+        """Włącza/wyłącza przyciski."""
+        self.resetujBtn.setEnabled(True)
+        self.raportBtn.setEnabled(success)
+        self.wydrukBtn.setEnabled(success)
+        self.zapisBtn.setEnabled(success)
+        self.analizaBtn.setEnabled(not success)
+
+    def _handleFailure(self) -> None:
+        pushWarning(self.iface, "Analiza nie powiodła się lub została przerwana.")
+        self._toggleButtons(False)

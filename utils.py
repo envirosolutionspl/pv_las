@@ -169,7 +169,7 @@ def pushLogCritical(message: str) -> None:
     )
 
 
-def apply_layer_style(layer, style_name):
+def applyLayerStyle(layer, style_name):
     """
     Aplikuje styl do warstwy pobierając konfigurację 1:1 z constants.LAYER_STYLES.
     """

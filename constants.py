@@ -9,14 +9,13 @@ FEED_URL = 'https://qgisfeed.envirosolutions.pl/'
 TEMP_DIR_PREFIX = 'fotowoltaika_analiza_' 
 
 # Układ współrzędnych (EPSG)
-CRS_EPSG_CODE = 'epsg:2180'
-CRS_EPSG = 'EPSG:2180' 
+CRS_EPSG = '2180' 
 
 # Nazwy providerów i szablony URI
 PROVIDER_MEMORY = 'memory'
-URI_TEMPLATE_MEMORY = '{geometry_type}?crs={crs}'
-URI_TEMPLATE_LINE = URI_TEMPLATE_MEMORY.format(geometry_type='LineString', crs=CRS_EPSG_CODE)
-URI_TEMPLATE_POLYGON = URI_TEMPLATE_MEMORY.format(geometry_type='Polygon', crs=CRS_EPSG_CODE)
+URI_TEMPLATE_MEMORY = '{geometry_type}?crs=epsg:{crs}'
+URI_TEMPLATE_LINE = URI_TEMPLATE_MEMORY.format(geometry_type='LineString', crs=CRS_EPSG)
+URI_TEMPLATE_POLYGON = URI_TEMPLATE_MEMORY.format(geometry_type='Polygon', crs=CRS_EPSG)
 
 
 # =============================================================================
@@ -93,13 +92,17 @@ VOLTAGE_TYPES = {
 }
 
 # Nazwy atrybutów oryginalnych (wejściowych)
-ATTR_GL = 'g_l'
-ATTR_KOD = 'kod_ob'
-ATTR_ID_ADRES = 'id_adres'
-ATTR_KATZARZ_ORIGINAL = 'KATZARZ'
-ATTR_RODZAJ_ORIGINAL = 'RODZAJ'
-ROAD_TYPE_FOREST = 'leśna'
+INPUT_ATTRS = {
+    'gl': 'g_l',
+    'kod': 'kod_ob',
+    'id_adres': 'id_adres',
+    'katzarz': 'KATZARZ',
+    'rodzaj': 'RODZAJ',
+    'adr_les': 'adr_les'
+}
 
+# Typ drogi lesnej
+ROAD_TYPE_FOREST = 'leśna'
 
 # =============================================================================
 # Zmienne konfiguracyjne warstw wynikowych
@@ -111,35 +114,29 @@ LAYER_KEY_LINIE = 'linie'
 LAYER_KEY_DROGI = 'drogi'
 
 # Nazwy atrybutów w warstwach wynikowych
-ATTR_NR_OB = "nr_ob"
-ATTR_ADR_LES = "adr_les"
-ATTR_POW = "pow"
-ATTR_ODL = "odl"
-ATTR_RODZAJ = "rodzaj"
+OUTPUT_ATTRS = {
+    'nr_ob': 'nr_ob',
+    'adres_lesny': 'adr_les',
+    'powierzchnia': 'pow',
+    'odleglosc': 'odl',
+    'rodzaj': 'rodzaj'   
+}
 
 # Klucze słowników wewnętrznych (używane w przetwarzaniu danych)
-RESULT_KEY_GEOMETRY = 'geometry'
-RESULT_KEY_AREA_HA = 'area_ha'
-RESULT_KEY_ID = 'id'
-RESULT_KEY_NR_OB = 'nr_ob'
-RESULT_KEY_DIST = 'dist'
-RESULT_KEY_RODZAJ = 'rodzaj'
-
-# Definicje warstw wynikowych
-OUTPUT_LAYERS = {
-    LAYER_KEY_OBSZARY: {
-        'name': 'Wyznaczone obszary',
-        'attributes': [ATTR_NR_OB, ATTR_ADR_LES, ATTR_POW]
-    },
-    LAYER_KEY_LINIE: {
-        'name': 'Najbliższe linie energetyczne',
-        'attributes': [ATTR_NR_OB, ATTR_ODL, ATTR_RODZAJ]
-    },
-    LAYER_KEY_DROGI: {
-        'name': 'Najbliższe drogi',
-        'attributes': [ATTR_NR_OB, ATTR_ODL, ATTR_RODZAJ]
-    }
+RESULT_KEYS = {
+    'geometry': 'geometry',
+    'area_ha': 'area_ha',
+    'id': 'id',
+    'nr_ob': 'nr_ob',
+    'dist': 'dist',
+    'rodzaj': 'rodzaj'
 }
+
+# Nazwy warstw wynikowych
+NAME_LAYER_OBSZARY = 'Wyznaczone obszary'
+NAME_LAYER_LINIE = 'Najbliższe linie energetyczne'
+NAME_LAYER_DROGI = 'Najbliższe drogi'
+
 
 
 # =============================================================================
@@ -170,11 +167,11 @@ LAYER_STYLES = {
     },
 
     # Warstwy analityczne (wynikowe) - linie
-    OUTPUT_LAYERS[LAYER_KEY_LINIE]['name']: {
+    NAME_LAYER_LINIE: {
         'line_color': 'red', 
         'line_width': '0.5'
     },
-    OUTPUT_LAYERS[LAYER_KEY_DROGI]['name']: {
+    NAME_LAYER_DROGI: {
         'line_color': 'gray', 
         'line_width': '0.5'
     },
@@ -186,7 +183,7 @@ LAYER_STYLES = {
     },
 
     # Warstwy analityczne (wynikowe) - poligony
-    OUTPUT_LAYERS[LAYER_KEY_OBSZARY]['name']: {
+    NAME_LAYER_OBSZARY: {
         'color': '#005023',
         'style': 'solid',
         'outline_color': 'black',
@@ -228,19 +225,19 @@ LAYOUT_CONFIG = {
         'EXTENT_SCALE': 1.6
     },
     'LOGO_LP': {
-        'PATH': ':/plugins/photovoltaics_LP/icons/logoLP.png',
+        'PATH': 'icons/logoLP.png',
         'ORIG_W': 300, 'ORIG_H': 300,
         'SCALE': 0.6,
         'POS_X': 20, 'POS_Y': 10
     },
     'LOGO_ENV': {
-        'PATH': ':/plugins/photovoltaics_LP/icons/logoPL.png',
+        'PATH': 'icons/logoPL.png',
         'ORIG_W': 1588, 'ORIG_H': 401,
         'SCALE': 0.4,
         'POS_X': 215, 'POS_Y': 10
     },
     'ARROW': {
-        'PATH': ':/plugins/photovoltaics_LP/icons/arrow.png',
+        'PATH': 'icons/arrow.png',
         'ORIG_W': 949, 'ORIG_H': 893,
         'SCALE': 0.6,
         'POS_X': 225, 'POS_Y': 45
