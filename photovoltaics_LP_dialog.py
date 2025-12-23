@@ -48,7 +48,8 @@ from .modules.zapisz_xlsx import ZapiszXLSX
 from .modules.generuj_raport import GenerujRaport
 from .utils import (
     openFile, pushMessageBoxCritical, 
-    pushMessage, pushLogInfo, applyLayerStyle
+    pushMessage, pushLogInfo, applyLayerStyle,
+    getLayerByName, getResultLayers
 )
 
 from .constants import (
@@ -260,23 +261,28 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(self.save_layer_path[0]) > 0:
                
             try:
-                wyznaczone_obszary = self.project.mapLayersByName(NAME_LAYER_OBSZARY)[0]
+                layers = getResultLayers(self.project)
+                wyznaczone_obszary = layers['obszary']
+                linie = layers['linie']
+                drogi = layers['drogi']
+
+                if not wyznaczone_obszary or not linie or not drogi:
+                    pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę!")
+                    return
 
                 features_obszary = [feature for feature in wyznaczone_obszary.getFeatures()]
                 fields_obszary = wyznaczone_obszary.fields()
                 path=self.save_layer_path[0]
                 self.tworzWarstwy(path, QgsWkbTypes.Polygon, fields_obszary, 'Wyznaczone_obszary', features_obszary)
 
-                linie = self.project.mapLayersByName(NAME_LAYER_LINIE)[0]
                 features_linie = [feature for feature in linie.getFeatures()]
                 fields_linie = linie.fields()
-                path_linie = ('/').join(path.split('/')[:-1]) + '//'+ 'najblizsze_linie_energetyczne.shp'
+                path_linie = os.path.join(os.path.dirname(path), 'najblizsze_linie_energetyczne.shp')
                 self.tworzWarstwy(path_linie, QgsWkbTypes.LineString, fields_linie, 'Najbliższe_linie_energetyczne', features_linie)
 
-                drogi = self.project.mapLayersByName(NAME_LAYER_DROGI)[0]
                 features_drogi = [feature for feature in drogi.getFeatures()]
                 fields_drogi = drogi.fields()
-                path_drogi = ('/').join(path.split('/')[:-1]) + '//'+ 'najblizsze_drogi.shp'
+                path_drogi = os.path.join(os.path.dirname(path), 'najblizsze_drogi.shp')
                 self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, 'Najbliższe_drogi', features_drogi)      
 
                 pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
@@ -321,11 +327,14 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
 
-            self.linie = self.project.mapLayersByName(NAME_LAYER_LINIE)[0]
+            layers = getResultLayers(self.project)
+            self.obszary = layers['obszary']
+            self.linie = layers['linie']
+            self.drogi = layers['drogi']
 
-            self.drogi = self.project.mapLayersByName(NAME_LAYER_DROGI)[0]
-
-            self.obszary = self.project.mapLayersByName(NAME_LAYER_OBSZARY)[0]
+            if not self.obszary or not self.linie or not self.drogi:
+                pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę!")
+                return
 
 
             nazwa_pliku = ZapiszXLSX().zapiszExcel()

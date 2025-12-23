@@ -10,12 +10,33 @@ from qgis.core import (
     QgsLineSymbol,
     QgsFillSymbol,
     QgsSingleSymbolRenderer,
-    QgsWkbTypes
+    QgsWkbTypes,
+    QgsProject
 )
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtGui import QIcon
 from . import PLUGIN_NAME
-from .constants import LAYER_STYLES
+from .constants import LAYER_STYLES, NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI
+
+
+def getLayerByName(name: str, project: QgsProject = None):
+    """
+    Bezpiecznie zwraca obiekt warstwy o podanej nazwie lub None, jeśli nie znaleziona.
+    """
+    proj = project or QgsProject.instance()
+    layers = proj.mapLayersByName(name)
+    return layers[0] if layers else None
+
+
+def getResultLayers(project: QgsProject = None):
+    """
+    Zwraca słownik z obiektami warstw wynikowych.
+    """
+    return {
+        'obszary': getLayerByName(NAME_LAYER_OBSZARY, project),
+        'linie': getLayerByName(NAME_LAYER_LINIE, project),
+        'drogi': getLayerByName(NAME_LAYER_DROGI, project)
+    }
 
 
 def onlyNewest(dataFilelist):

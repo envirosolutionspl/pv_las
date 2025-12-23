@@ -218,6 +218,9 @@ EXCEL_TABLE_STYLE = 'Table Style Medium 4'
 # Konfiguracja wydruku (Map Layout)
 LAYOUT_CONFIG = {
     'MARGINS': 20,
+    'PAGE': {
+        'SIZE_W': 297, 'SIZE_H': 210,
+    },
     'MAP': {
         'RECT': (20, 20, 20, 20),
         'POS_X': 20, 'POS_Y': 45,
@@ -245,12 +248,14 @@ LAYOUT_CONFIG = {
     'TITLE': {
         'TEXT_TEMPLATE': "Obszary wyznaczone na potrzeby farm fotowoltaicznych - Nadleśnictwo {}",
         'ATTR_NAME': 'nzw_nadl',
+        'FONT_TYPE': 'Arial',
         'FONT_SIZE': 13,
         'POS_X': 40, 'POS_Y': 15,
         'SIZE_W': 190, 'SIZE_H': 10
     },
     'FOOTER': {
         'TEXT': "Wygenerowano przy użyciu wtyczki Fotowoltaika LP",
+        'FONT_TYPE': 'Arial',
         'FONT_SIZE': 11,
         'POS_X': 100, 'POS_Y': 190
     },
@@ -259,8 +264,12 @@ LAYOUT_CONFIG = {
     },
     'SCALEBAR': {
         'POS_X': 215, 'POS_Y': 161,
+        'FONT_TYPE': 'Arial',
+        'FONT_SIZE': 9,
         'MAX_WIDTH': 70,
         'SEGMENTS': 5,
+        'UNITS_PER_SEGMENT': 3.0,
+        'MAP_UNITS_PER_SCALE_BAR_UNIT': 1000.0,
         'UNIT_LABEL': "km"
     }
 }

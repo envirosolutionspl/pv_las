@@ -21,7 +21,10 @@ from ..constants import (
     OUTPUT_ATTRS, RESULT_KEYS, INPUT_ATTRS,
     NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI
 )
-from ..utils import pushLogInfo, pushMessage, pushWarning, applyLayerStyle
+from ..utils import (
+    pushLogInfo, pushMessage, pushWarning, applyLayerStyle,
+    getLayerByName
+)
 
 class AnalizaTask(QgsTask):
    
@@ -197,18 +200,18 @@ class AnalizaTask(QgsTask):
             pushLogInfo(f"AnalizaTask: Nieoczekiwany błąd: {e}")
 
     def _loadBDOTLayers(self) -> None:
-        drogi_layers = self.project.mapLayersByName(LAYER_NAME_BDOT10K_DROGI)
-        if drogi_layers:
-            self.drogi_publiczne_feats = [f for f in drogi_layers[0].getFeatures() if f.hasGeometry()]
+        drogi_layer = getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
+        if drogi_layer:
+            self.drogi_publiczne_feats = [f for f in drogi_layer.getFeatures() if f.hasGeometry()]
             pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_publiczne_feats)} drogi_publiczne")
         else:
             self.drogi_publiczne_feats = None
             pushLogInfo("AnalizaTask: Warstwa BDOT Drogi NIE znaleziona")
 
-        linie_layers = self.project.mapLayersByName(LAYER_NAME_BDOT10K_LINIE)
-        if linie_layers:
+        linie_layer = getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
+        if linie_layer:
             # Filtrowanie linii według rodzaju napięcia
-            self.linie_feats = [f for f in linie_layers[0].getFeatures() 
+            self.linie_feats = [f for f in linie_layer.getFeatures() 
                                 if f.hasGeometry() and f[INPUT_ATTRS['rodzaj']] in self.rodzaj_napiecia]
             pushLogInfo(f"AnalizaTask: Wczytano {len(self.linie_feats)} linie")
         else:
