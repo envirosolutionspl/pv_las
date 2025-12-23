@@ -24,16 +24,16 @@ Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na G
 4. Jeżeli wtyczka nadal nie jest widoczna, należy przejść w QGIS Desktop do Wtyczki -> Zarządzanie wtyczkami -> Zainstalowane -> Fotowoltaika LP -> Odinstalować wtyczkę i zainstalować ponownie.
 
 ### Instrukcja użytkowania:
-1. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "WCZYTAJ WARSTWY POCHODNE". Otworzy się okno wyboru folderu zip z warstwami pochodnymi dla danego nadleśnictwa, pobranym z Systemu Informatycznego Lasów Państwowych.
+1. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "Wczytaj warstwy pochodne". Otworzy się okno wyboru folderu zip z warstwami pochodnymi dla danego nadleśnictwa, pobranym z Systemu Informatycznego Lasów Państwowych.
 2. Po wybraniu folderu zip z warstwami pochodnymi do projektu zostaną załadowane warstwy z drogami leśnymi i wydzieleniami leśnymi danego nadleśnictwa, a także mapa bazowa – Rastrowa Mapa Topograficzna Polski.
-3. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "POBIERZ I WYŚWIETL DANE BDOT10K".
+3. W oknie wtyczki, w sekcji Wczytywanie danych, kliknij przycisk "Pobierz i wyświetl dane BDOT10K".
 4. Do projektu zostanie załadowana warstwa linii energetycznych i dróg z BDOT10k dla powiatów, w obrębie których znajdują się wydzielenia leśne danego nadleśnictwa. Ładowanie danych może potrwać kilka minut.
-5. Po załadowaniu ww. warstw można przystąpić do wykonania analizy na potrzeby farm fotowoltaicznych. Należy kliknąć przycisk "WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP". Analiza może potrwać kilka minut.
+5. Po załadowaniu ww. warstw można przystąpić do wykonania analizy na potrzeby farm fotowoltaicznych. Należy kliknąć przycisk "Wykonaj analizę na potrzeby fotowoltaiki w LP". Analiza może potrwać kilka minut.
 6. Do projektu zostaną załadowane warstwy z wyznaczonymi obszarami, a także warstwy z najbliższymi liniami energetycznymi i najbliższymi drogami.
 7. Możliwości wtyczki:
-    - Wtyczka pozwala na zapisanie warstw z wyznaczonymi obszarami, najbliższymi liniami energetycznymi i najbliższymi drogami do pliku Shapefile po kliknięciu przycisku "ZAPISZ WARSTWY" i wybraniu lokalizacji zapisu w oknie dialogowym.
-    - Wtyczka umożliwia również wygenerowanie dokumentu w formacie PDF lub obrazu rastrowego po kliknięciu przycisku "GENERUJ WYDRUK" i zapisaniu go w lokalizacji wybranej w oknie dialogowym.
-    - Możliwe jest również wygenerowanie raportu (plik XLSX) z tabelarycznym wykazem wyznaczonych obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem. W tym celu należy kliknąć przycisk "GENERUJ RAPORT".
+    - Wtyczka pozwala na zapisanie warstw z wyznaczonymi obszarami, najbliższymi liniami energetycznymi i najbliższymi drogami do pliku Shapefile po kliknięciu przycisku "Zapisz warstwy" i wybraniu lokalizacji zapisu w oknie dialogowym.
+    - Wtyczka umożliwia również wygenerowanie dokumentu w formacie PDF lub obrazu rastrowego po kliknięciu przycisku "Generuj wydruk" i zapisaniu go w lokalizacji wybranej w oknie dialogowym.
+    - Możliwe jest również wygenerowanie raportu (plik XLSX) z tabelarycznym wykazem wyznaczonych obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem. W tym celu należy kliknąć przycisk "Generuj raport".
 8. Na każdym etapie można wyczyścić dane za pomocą przycisku "Wyczyść".
 
 ### Uwagi
