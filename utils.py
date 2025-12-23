@@ -136,26 +136,28 @@ def createPointsFromPolygon(layer, density=1000):
 
     return punktyList
 
-def pushMessageBoxCritical(self, title: str, message: str):
+def pushMessageBoxCritical(parent, title: str, message: str):
     msg_box = QMessageBox(
         QMessageBox.Critical,
         title,
         message,
-        QMessageBox.StandardButton.Ok
+        QMessageBox.StandardButton.Ok,
+        parent
     )
-    if hasattr(self, 'plugin_icon'):
-        msg_box.setWindowIcon(QIcon(self.plugin_icon))
+    if hasattr(parent, 'plugin_icon'):
+        msg_box.setWindowIcon(QIcon(parent.plugin_icon))
     msg_box.exec()
 
-def pushMessageBox(self, message):
+def pushMessageBox(parent, message):
     msg_box = QMessageBox(
         QMessageBox.Information,
         'Informacja',
         message,
-        QMessageBox.StandardButton.Ok
+        QMessageBox.StandardButton.Ok,
+        parent
     )
-    if hasattr(self, 'plugin_icon'):
-        msg_box.setWindowIcon(QIcon(self.plugin_icon))
+    if hasattr(parent, 'plugin_icon'):
+        msg_box.setWindowIcon(QIcon(parent.plugin_icon))
     msg_box.exec()
 
 def pushMessage(iface, message: str) -> None:
@@ -175,7 +177,6 @@ def pushWarning(iface, message: str) -> None:
     )
 
 
-@staticmethod
 def pushLogInfo(message: str) -> None:
     QgsMessageLog.logMessage(
         message,
@@ -183,7 +184,6 @@ def pushLogInfo(message: str) -> None:
         level=Qgis.Info
     )
 
-@staticmethod
 def pushLogWarning(message: str) -> None:
     QgsMessageLog.logMessage(
         message,
@@ -191,7 +191,6 @@ def pushLogWarning(message: str) -> None:
         level=Qgis.Warning
     )
 
-@staticmethod
 def pushLogCritical(message: str) -> None:
     QgsMessageLog.logMessage(
         message,
@@ -219,3 +218,16 @@ def applyLayerStyle(layer, style_name):
     if symbol:
         layer.setRenderer(QgsSingleSymbolRenderer(symbol))
         layer.triggerRepaint()
+
+def pobierzNazweZWarstwy(warstwa, attr_name, iface):
+    """Pobiera tekst z konkretnego atrybutu pierwszego obiektu warstwy."""
+    if warstwa:
+        feat = next(warstwa.getFeatures(), None)
+        if feat:
+            try: 
+                return str(feat[attr_name])
+            except KeyError: 
+                pushWarning(iface, "Błąd: Brak pola " + attr_name)
+        else:
+             pushWarning(iface, "Błąd: Nie znaleziono obiektu w warstwie " + warstwa.name())
+    return "Nieznany"

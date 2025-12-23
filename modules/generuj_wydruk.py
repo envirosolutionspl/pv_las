@@ -23,9 +23,9 @@ from qgis.PyQt.QtWidgets import QFileDialog
 
 from ..constants import (
     LAYOUT_CONFIG, NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, 
-    NAME_LAYER_DROGI
+    NAME_LAYER_DROGI, FILE_FILTERS
 )
-from ..utils import getResultLayers, pushWarning
+from ..utils import getResultLayers, pushWarning, pobierzNazweZWarstwy
 
 class WydrukGenerator:
     def __init__(self, parent):
@@ -63,8 +63,7 @@ class WydrukGenerator:
 
     def generuj(self):
         """Główna funkcja wydruku"""
-        typy_obrazu = "jpg (*.jpg);;bitmap (*.bmp);;tiff (*.tiff);; pdf (*.pdf)"
-        nazwa_pliku, _ = QFileDialog.getSaveFileName(None, "Zapisz jako ...", "", filter=typy_obrazu)
+        nazwa_pliku, _ = QFileDialog.getSaveFileName(None, "Zapisz jako ...", "", filter=FILE_FILTERS['IMAGES'])
         
         if not nazwa_pliku:
             return None
@@ -83,9 +82,9 @@ class WydrukGenerator:
         # Przygotowanie zasięgu mapy
         extent = self._obliczZasiegMapy(self.lc['MAP']['EXTENT_SCALE'])
 
-        # Przygotowanie tytułu
-        nazwa_n = self._pobierzNazweZWarstwy(self.nadlesnictwo, self.lc['TITLE']['ATTR_NAME'], self.iface)
-        tytul_pelny = self.lc['TITLE']['TEXT_TEMPLATE'].format(nazwa_n)
+        # Nazwa nadleśnictwa
+        nazwa_nadl = pobierzNazweZWarstwy(self.nadlesnictwo, self.lc['TITLE']['ATTR_NAME'], self.iface)
+        tytul_pelny = self.lc['TITLE']['TEXT_TEMPLATE'].format(nazwa_nadl)
         
         # Przygotowanie warstw wynikowych
         warstwy_wynikowe = [l for l in self.warstwy if l.name() in [NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI]]
@@ -256,12 +255,3 @@ class WydrukGenerator:
 
         extent.scale(config_scale)
         return extent
-
-    def _pobierzNazweZWarstwy(self, warstwa, attr_name, iface):
-        """Pobiera tekst z konkretnego atrybutu pierwszego obiektu warstwy."""
-        if warstwa:
-            feat = next(warstwa.getFeatures(), None)
-            if feat:
-                try: return str(feat[attr_name])
-                except KeyError: pushWarning(iface, "Błąd: Brak pola " + attr_name)
-        return pushWarning(iface, "Błąd: Nie znaleziono obiektu")

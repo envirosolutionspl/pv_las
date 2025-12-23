@@ -11,8 +11,7 @@ TEMP_DIR_PREFIX = 'fotowoltaika_analiza_'
 # Układ współrzędnych (EPSG)
 CRS_EPSG = '2180' 
 
-# Nazwy providerów i szablony URI
-PROVIDER_MEMORY = 'memory'
+# Szablony URI
 URI_TEMPLATE_MEMORY = '{geometry_type}?crs=epsg:{crs}'
 URI_TEMPLATE_LINE = URI_TEMPLATE_MEMORY.format(geometry_type='LineString', crs=CRS_EPSG)
 URI_TEMPLATE_POLYGON = URI_TEMPLATE_MEMORY.format(geometry_type='Polygon', crs=CRS_EPSG)
@@ -198,6 +197,39 @@ LAYER_STYLES = {
         'outline_style': 'solid'
     },
 }
+
+# =============================================================================
+# Konfiguracja techniczna
+# =============================================================================
+
+ENCODINGS = {
+    'UTF8': 'UTF-8',
+    'WIN1250': 'windows-1250'
+}
+
+PROVIDERS = {
+    'OGR': 'ogr',
+    'WMS': 'wms',
+    'MEMORY': 'memory'
+}
+
+FILE_FILTERS = {
+    'ZIP': "Archiwum ZIP (*.zip)",
+    'SHP': "*.shp",
+    'EXCEL': "Excel files (*.xlsx)",
+    'IMAGES': "jpg (*.jpg);;bitmap (*.bmp);;tiff (*.tiff);; pdf (*.pdf)"
+}
+
+DRIVER_SHAPEFILE = 'ESRI Shapefile'
+
+# =============================================================================
+# Domyślne nazwy plików i warstw (wynikowe)
+# =============================================================================
+FILENAME_DEFAULT_XLSX = "Raport"
+FILENAME_DEFAULT_LAYERS_DIR = "wyznaczone_obszary"
+FILENAME_LAYER_LINIE_SHP = 'najblizsze_linie_energetyczne.shp'
+FILENAME_LAYER_DROGI_SHP = 'najblizsze_drogi.shp'
+
 
 # =============================================================================
 # Zmienne do raportu i layoutu

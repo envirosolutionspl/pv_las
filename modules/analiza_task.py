@@ -17,7 +17,7 @@ from ..constants import (
     VOLTAGE_TYPES, ROAD_TYPE_FOREST,
     SOIL_ROLES, LABEL_SETTINGS,
     LAYER_NAME_DROGI_LESNE_FILTER, AREA_HA_THRESHOLD,
-    PROVIDER_MEMORY, URI_TEMPLATE_POLYGON, URI_TEMPLATE_LINE,
+    PROVIDERS, URI_TEMPLATE_POLYGON, URI_TEMPLATE_LINE,
     OUTPUT_ATTRS, RESULT_KEYS, INPUT_ATTRS,
     NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI
 )
@@ -358,7 +358,7 @@ class AnalizaTask(QgsTask):
 
     def _prepareLayer(self, layer_name: str, uri: str, data_list: List[Dict[str, Any]]) -> QgsVectorLayer:
         """Mapowanie danych do warstwy"""
-        layer = QgsVectorLayer(uri, layer_name, PROVIDER_MEMORY)
+        layer = QgsVectorLayer(uri, layer_name, PROVIDERS['MEMORY'])
         pr = layer.dataProvider()
         layer.startEditing()
 

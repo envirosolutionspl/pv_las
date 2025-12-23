@@ -49,14 +49,17 @@ from .modules.generuj_raport import GenerujRaport
 from .utils import (
     openFile, pushMessageBoxCritical, 
     pushMessage, pushLogInfo, applyLayerStyle,
-    getLayerByName, getResultLayers
+    getLayerByName, getResultLayers, pobierzNazweZWarstwy
 )
 
 from .constants import (
     WMTS_URL_TEMPLATE, MAPA_BAZOWA_LAYERS, CRS_EPSG, MAPA_BAZOWA_URL,
     MAPA_BAZOWA_LAYER_NAME, INPUT_LAYERS, TEMP_DIR_PREFIX,
-     LAYOUT_CONFIG, NAME_LAYER_OBSZARY,
-    NAME_LAYER_LINIE, NAME_LAYER_DROGI
+    LAYOUT_CONFIG, NAME_LAYER_OBSZARY,
+    NAME_LAYER_LINIE, NAME_LAYER_DROGI,
+    ENCODINGS, PROVIDERS,
+    DRIVER_SHAPEFILE, FILE_FILTERS,
+    FILENAME_DEFAULT_LAYERS_DIR, FILENAME_LAYER_LINIE_SHP, FILENAME_LAYER_DROGI_SHP
 )
 
 
@@ -121,7 +124,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             url=MAPA_BAZOWA_URL
         )
         
-        self.mapa_bazowa = QgsRasterLayer(wmts_url, MAPA_BAZOWA_LAYER_NAME, 'wms')
+        self.mapa_bazowa = QgsRasterLayer(wmts_url, MAPA_BAZOWA_LAYER_NAME, PROVIDERS['WMS'])
         if self.mapa_bazowa.isValid():
             root = self.project.layerTreeRoot()
             self.project.addMapLayer(self.mapa_bazowa, False)
@@ -138,7 +141,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.DirectoryOnly)
         self.selected_data = dialog.getOpenFileName(
-            None, "Wybierz archiwum", "", "Archiwum ZIP (*.zip)")
+            None, "Wybierz archiwum", "", FILE_FILTERS['ZIP'])
 
         if self.selected_data[0]:
             self.pobierzWarstwyPochodneBtn.setEnabled(False)
@@ -151,13 +154,13 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             wydzielenia_opisy_path = os.path.join(self.temp_path, INPUT_LAYERS['wydzielenia_opisy']['filename'])
             nadlesnictwo_path = os.path.join(self.temp_path, INPUT_LAYERS['nadlesnictwo']['filename'])
 
-            self.oddzialy= QgsVectorLayer(oddzialy_path, INPUT_LAYERS['oddzialy']['layer_name'], "ogr")
-            self.powiaty = QgsVectorLayer(powiaty_path, INPUT_LAYERS['powiaty']['layer_name'], "ogr")
-            self.wydzielenia = QgsVectorLayer(wydzielenia_path, INPUT_LAYERS['wydzielenia']['layer_name'], "ogr")
-            self.drogi_lesne = QgsVectorLayer(drogi_lesne_path, INPUT_LAYERS['drogi_lesne']['layer_name'], "ogr")
-            self.wydzielenia_opisy = QgsVectorLayer( wydzielenia_opisy_path, INPUT_LAYERS['wydzielenia_opisy']['layer_name'], "ogr")
-            self.nadlesnictwo = QgsVectorLayer( nadlesnictwo_path, INPUT_LAYERS['nadlesnictwo']['layer_name'], "ogr")
-            self.nadlesnictwo.dataProvider().setEncoding(u'windows-1250')
+            self.oddzialy= QgsVectorLayer(oddzialy_path, INPUT_LAYERS['oddzialy']['layer_name'], PROVIDERS['OGR'])
+            self.powiaty = QgsVectorLayer(powiaty_path, INPUT_LAYERS['powiaty']['layer_name'], PROVIDERS['OGR'])
+            self.wydzielenia = QgsVectorLayer(wydzielenia_path, INPUT_LAYERS['wydzielenia']['layer_name'], PROVIDERS['OGR'])
+            self.drogi_lesne = QgsVectorLayer(drogi_lesne_path, INPUT_LAYERS['drogi_lesne']['layer_name'], PROVIDERS['OGR'])
+            self.wydzielenia_opisy = QgsVectorLayer( wydzielenia_opisy_path, INPUT_LAYERS['wydzielenia_opisy']['layer_name'], PROVIDERS['OGR'])
+            self.nadlesnictwo = QgsVectorLayer( nadlesnictwo_path, INPUT_LAYERS['nadlesnictwo']['layer_name'], PROVIDERS['OGR'])
+            self.nadlesnictwo.dataProvider().setEncoding(ENCODINGS['WIN1250'])
            
             
             if self.drogi_lesne.isValid() and self.wydzielenia.isValid():
@@ -257,7 +260,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         """
     
         self.save_layer_path = QFileDialog.getSaveFileName(
-                None, "Wybierz lokalizację", 'wyznaczone_obszary', '*.shp')
+                None, "Wybierz lokalizację", FILENAME_DEFAULT_LAYERS_DIR, FILE_FILTERS['SHP'])
         if len(self.save_layer_path[0]) > 0:
                
             try:
@@ -273,17 +276,17 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                 features_obszary = [feature for feature in wyznaczone_obszary.getFeatures()]
                 fields_obszary = wyznaczone_obszary.fields()
                 path=self.save_layer_path[0]
-                self.tworzWarstwy(path, QgsWkbTypes.Polygon, fields_obszary, 'Wyznaczone_obszary', features_obszary)
+                self.tworzWarstwy(path, QgsWkbTypes.Polygon, fields_obszary, NAME_LAYER_OBSZARY, features_obszary)
 
                 features_linie = [feature for feature in linie.getFeatures()]
                 fields_linie = linie.fields()
-                path_linie = os.path.join(os.path.dirname(path), 'najblizsze_linie_energetyczne.shp')
-                self.tworzWarstwy(path_linie, QgsWkbTypes.LineString, fields_linie, 'Najbliższe_linie_energetyczne', features_linie)
+                path_linie = os.path.join(os.path.dirname(path), FILENAME_LAYER_LINIE_SHP)
+                self.tworzWarstwy(path_linie, QgsWkbTypes.LineString, fields_linie, NAME_LAYER_LINIE, features_linie)
 
                 features_drogi = [feature for feature in drogi.getFeatures()]
                 fields_drogi = drogi.fields()
-                path_drogi = os.path.join(os.path.dirname(path), 'najblizsze_drogi.shp')
-                self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, 'Najbliższe_drogi', features_drogi)      
+                path_drogi = os.path.join(os.path.dirname(path), FILENAME_LAYER_DROGI_SHP)
+                self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, NAME_LAYER_DROGI, features_drogi)      
 
                 pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
                 folder_name = ('/').join(path.split('/')[:-1])
@@ -301,52 +304,66 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         crs = QgsCoordinateReferenceSystem(f"EPSG:{CRS_EPSG}")
         transform_context = self.project.transformContext()
         save_options = QgsVectorFileWriter.SaveVectorOptions()
-        save_options.driverName = "ESRI Shapefile"
-        save_options.fileEncoding = "UTF-8"
+        save_options.driverName = DRIVER_SHAPEFILE
+        save_options.fileEncoding = ENCODINGS['UTF8']
         if Qgis.QGIS_VERSION_INT >= 31030:
             writer = QgsVectorFileWriter.create(
                 path, fields, typ_geom, crs, transform_context, save_options)
         else:
             writer = QgsVectorFileWriter(
-                self.save_layer_path[0], 'UTF-8', fields,  typ_geom, crs, "ESRI Shapefile")
+                self.save_layer_path[0], ENCODINGS['UTF8'], fields,  typ_geom, crs, DRIVER_SHAPEFILE)
         if writer.hasError() != QgsVectorFileWriter.NoError:
             pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
         else:
             del writer
             layer = QgsVectorLayer(
-                path, name, 'ogr')
-
+                path, name, PROVIDERS['OGR'])
             prov = layer.dataProvider()
-            prov.addFeatures(features)        
+            prov.addFeatures(features)
+        
 
     def generujRaport(self):
         """
-        Generuje raport i zapisuje go jako plik excela w 
-        wybranej lokalizacji. W razie problemu pojawia się wiadomość.
+        Generuje raport i zapisuje go jako plik excela.
         """
+
+        layers = getResultLayers(self.project)
+        obszary = layers.get('obszary')
+        linie = layers.get('linie')
+        drogi = layers.get('drogi')
+
+        if not obszary or not linie or not drogi:
+            pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę, aby wygenerować warstwy wynikowe!")
+            return
+
+        attr_nadl = LAYOUT_CONFIG['TITLE']['ATTR_NAME']
+        nazwa_nadl = pobierzNazweZWarstwy(self.nadlesnictwo, attr_nadl, self.iface)
+
         try:
-            nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
-
-            layers = getResultLayers(self.project)
-            self.obszary = layers['obszary']
-            self.linie = layers['linie']
-            self.drogi = layers['drogi']
-
-            if not self.obszary or not self.linie or not self.drogi:
-                pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę!")
-                return
-
-
             nazwa_pliku = ZapiszXLSX().zapiszExcel()
-          
-            if nazwa_pliku:
-                generuj_raport = GenerujRaport()
-                generuj_raport.tworzTabele(nazwa_pliku, self.obszary, self.drogi, self.linie, nazwa_nadlesnictwa[0])
-                pushMessage(self.iface, 'Generowanie raportu zakonczone sukcesem!')
-                folder_name = ('/').join(nazwa_pliku.split('/')[:-1])
+        except Exception as e:
+            pushLogInfo(f"Błąd podczas wybierania ścieżki zapisu: {e}")
+            pushMessageBoxCritical(self, "Błąd", "Nie udało się określić ścieżki zapisu pliku.")
+            return
+
+        if not nazwa_pliku:
+            return
+
+        try:
+            generuj_raport = GenerujRaport()
+            generuj_raport.tworzTabele(nazwa_pliku, obszary, drogi, linie, nazwa_nadl)
+            
+            pushMessage(self.iface, 'Generowanie raportu zakończone sukcesem!')
+            
+            folder_name = os.path.dirname(nazwa_pliku)
+            if os.path.exists(folder_name):
                 openFile(folder_name)
-        except:
-            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z wygenerowaniem raportu!")
+                
+        except PermissionError:
+            pushMessageBoxCritical(self, "Błąd uprawnień", "Nie można zapisać pliku. Zamknij raport, jeśli jest otwarty w innym programie i spróbuj ponownie.")
+        except Exception as e:
+            pushLogInfo(f"Błąd podczas generowania raportu: {e}")
+            pushMessageBoxCritical(self, "Błąd generowania", f"Wystąpił nieoczekiwany problem: {str(e)}")
 
     def generujWydruk(self):
         """
@@ -358,8 +375,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         if sciezka_pliku:
             folder = os.path.dirname(sciezka_pliku)
             pushMessage(self.iface, f"Pomyślnie zapisano: {os.path.basename(sciezka_pliku)}")
-            openFile(folder)
-            
+            openFile(folder)    
 
     def resetuj(self):
         """

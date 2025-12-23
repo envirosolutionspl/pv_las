@@ -1,6 +1,7 @@
 from os import path
 from qgis.PyQt.QtWidgets import QFileDialog
 from qgis.PyQt.QtCore import QSettings, QFileInfo
+from ..constants import FILE_FILTERS
 
 
 class ZapiszXLSX:
@@ -19,7 +20,7 @@ class ZapiszXLSX:
         (nazwa_pliku, filter) = QFileDialog.getSaveFileName(None,
                                                           "Zapisz jako plik excel...",
                                                           sciezka,
-                                                          filter="Excel files (*.xlsx)",
+                                                          filter=FILE_FILTERS['EXCEL'],
                                                           )
         
         fn, rozszerzenie = path.splitext(nazwa_pliku)

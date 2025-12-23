@@ -15,7 +15,8 @@ import processing
 
 from ..constants import (
     BDOT10K_SHP_URL_TEMPLATE, BDOT_FILE_SUFFIX_DROGI, BDOT_FILE_SUFFIX_LINIE,
-    LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG
+    LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG,
+    PROVIDERS
 )
 from ..utils import pushLogInfo, pushMessage, pushWarning, applyLayerStyle
 
@@ -152,7 +153,7 @@ class PobierzBdotTask(QgsTask):
         if not path or not os.path.exists(path):
             return
 
-        vlayer = QgsVectorLayer(path, layer_name, "ogr")
+        vlayer = QgsVectorLayer(path, layer_name, PROVIDERS['OGR'])
         if vlayer.isValid():
             applyLayerStyle(vlayer, layer_name)
             self.project.addMapLayer(vlayer)

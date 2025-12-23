@@ -9,39 +9,45 @@ class GenerujRaport():
 
     def tworzTabele(self, nazwa_pliku, obszary, drogi, linie, nazwa_nadl):
         """Tworzy tabelę excela.
-
-        Args:
-            nazwa_pliku (str): wybrana ścieżka eksportu
-            obszary (QgsVectorLayer): warstwa z wyznaczonymi obszarami
-            drogi (QgsVectorLayer): warstwa z najbliższymi drogami
-            linie (QgsVectorLayer): warstwa z najbliższymi liniami energetycznymi
-            nazwa_nadlesnictwa (str): nazwa nadleśnictwa
         """
-        numery_obszarow = [feature[0] for feature in obszary.getFeatures()]
-        adresy_lesne = [feature[1] for feature in obszary.getFeatures()]
-        powierzchnie = [feature[2] for feature in obszary.getFeatures()]
-        odleglosci_od_drog =  [feature[1] for feature in drogi.getFeatures()]
-        rodzaje_drog =  [feature[2] for feature in drogi.getFeatures()]
-        odleglosci_od_linii=  [feature[1] for feature in linie.getFeatures()]
-        rodzaje_linii =  [feature[2] for feature in linie.getFeatures()]
+        # Mapowanie danych po numerze obszaru, aby uniknąć błędów indeksacji
+        map_drogi = {f[0]: (f[1], f[2]) for f in drogi.getFeatures()}
+        map_linie = {f[0]: (f[1], f[2]) for f in linie.getFeatures()}
 
-        dane = [
-                    [
-                    numery_obszarow[i], 
-                    adresy_lesne[i],
-                    powierzchnie[i],  
-                    odleglosci_od_drog[i],
-                    rodzaje_drog[i],
-                    odleglosci_od_linii[i],
-                    rodzaje_linii[i]
-                    ] 
-                    for i in range(0,len(numery_obszarow))
-                ]
+        dane = []
+        for feature in obszary.getFeatures():
+            nr = feature[0]
+            # Pobieramy dane o drodze lub dajemy wartości domyślne
+            odl_droga, rodz_droga = map_drogi.get(nr, (None, "Nie znaleziono"))
+            # Pobieramy dane o linii lub dajemy wartości domyślne
+            odl_linia, rodz_linia = map_linie.get(nr, (None, "Nie znaleziono"))
+
+            dane.append([
+                nr,
+                feature[1], # adres leśny
+                feature[2], # powierzchnia
+                odl_droga,
+                rodz_droga,
+                odl_linia,
+                rodz_linia
+            ])
+
+        if not dane:
+            return
 
         workbook = xlsxwriter.Workbook(nazwa_pliku)
         worksheet = workbook.add_worksheet('Nadleśnictwo {}'.format(nazwa_nadl))
 
-        worksheet.add_table('A1:G{}'.format(len(numery_obszarow)+1), {'data': dane, 'autofilter': False, 'style': EXCEL_TABLE_STYLE,'banded_rows': 0, 'banded_columns': 1, 'columns': EXCEL_REPORT_COLUMNS})
+        # styl tabeli
+        last_row = len(dane) + 1
+        worksheet.add_table('A1:G{}'.format(last_row), {
+            'data': dane, 
+            'autofilter': False, 
+            'style': EXCEL_TABLE_STYLE,
+            'banded_rows': 0, 
+            'banded_columns': 1, 
+            'columns': EXCEL_REPORT_COLUMNS
+        })
 
         worksheet.autofit()
         workbook.close()
