@@ -227,8 +227,8 @@ DRIVER_SHAPEFILE = 'ESRI Shapefile'
 # =============================================================================
 FILENAME_DEFAULT_XLSX = "Raport"
 FILENAME_DEFAULT_LAYERS_DIR = "wyznaczone_obszary"
-FILENAME_LAYER_LINIE_SHP = 'najblizsze_linie_energetyczne.shp'
-FILENAME_LAYER_DROGI_SHP = 'najblizsze_drogi.shp'
+FILENAME_LAYER_LINIE = 'najblizsze_linie_energetyczne.shp'
+FILENAME_LAYER_DROGI = 'najblizsze_drogi.shp'
 
 
 # =============================================================================

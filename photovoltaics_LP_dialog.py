@@ -59,7 +59,7 @@ from .constants import (
     NAME_LAYER_LINIE, NAME_LAYER_DROGI,
     ENCODINGS, PROVIDERS,
     DRIVER_SHAPEFILE, FILE_FILTERS,
-    FILENAME_DEFAULT_LAYERS_DIR, FILENAME_LAYER_LINIE_SHP, FILENAME_LAYER_DROGI_SHP
+    FILENAME_DEFAULT_LAYERS_DIR, FILENAME_LAYER_LINIE, FILENAME_LAYER_DROGI
 )
 
 
@@ -280,12 +280,12 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
 
                 features_linie = [feature for feature in linie.getFeatures()]
                 fields_linie = linie.fields()
-                path_linie = os.path.join(os.path.dirname(path), FILENAME_LAYER_LINIE_SHP)
+                path_linie = os.path.join(os.path.dirname(path), FILENAME_LAYER_LINIE)
                 self.tworzWarstwy(path_linie, QgsWkbTypes.LineString, fields_linie, NAME_LAYER_LINIE, features_linie)
 
                 features_drogi = [feature for feature in drogi.getFeatures()]
                 fields_drogi = drogi.fields()
-                path_drogi = os.path.join(os.path.dirname(path), FILENAME_LAYER_DROGI_SHP)
+                path_drogi = os.path.join(os.path.dirname(path), FILENAME_LAYER_DROGI)
                 self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, NAME_LAYER_DROGI, features_drogi)      
 
                 pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
