@@ -138,7 +138,7 @@ def createPointsFromPolygon(layer, density=1000):
 
 def pushMessageBoxCritical(parent, title: str, message: str):
     msg_box = QMessageBox(
-        QMessageBox.Critical,
+        QMessageBox.Icon.Critical,
         title,
         message,
         QMessageBox.StandardButton.Ok,
@@ -150,7 +150,7 @@ def pushMessageBoxCritical(parent, title: str, message: str):
 
 def pushMessageBox(parent, message):
     msg_box = QMessageBox(
-        QMessageBox.Information,
+        QMessageBox.Icon.Information,
         'Informacja',
         message,
         QMessageBox.StandardButton.Ok,
