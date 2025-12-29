@@ -21,10 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
-
+from qgis.PyQt.QtWidgets import QAction, QToolBar, QApplication, QMessageBox, QDialog, QComboBox
+from qgis.PyQt import uic
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -32,11 +32,6 @@ from .resources import *
 from .photovoltaics_LP_dialog import PhotovoltaicsLPDialog
 import os.path
 
-from PyQt5.uic.properties import QtWidgets
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QToolBar, QApplication, QMessageBox, QDialog, QComboBox
-from PyQt5 import uic
 from .qgis_feed import QgisFeedDialog
 from qgis.gui import *
 from qgis.core import *
@@ -241,7 +236,7 @@ class PhotovoltaicsLP:
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.dlg.exec()
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and
@@ -251,7 +246,7 @@ class PhotovoltaicsLP:
     def showBranchSelectionDialog(self):
         self.qgisfeed_dialog = QgisFeedDialog()
 
-        if self.qgisfeed_dialog.exec_() == QDialog.Accepted:
+        if self.qgisfeed_dialog.exec() == QDialog.Accepted:
             self.selected_branch = self.qgisfeed_dialog.comboBox.currentText()
             
             #Zapis w QGIS3.ini

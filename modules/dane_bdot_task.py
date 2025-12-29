@@ -107,7 +107,7 @@ class PobierzBdotTask(QgsTask):
         request.get(QNetworkRequest(QUrl(url)))
         reply = request.reply()
         
-        if reply.error() != QNetworkReply.NoError:
+        if reply.error() != QNetworkReply.NetworkError.NoError:
             pushLogInfo(f"Błąd sieci ({url}): {reply.errorString()}")
             return None
         return reply.content()

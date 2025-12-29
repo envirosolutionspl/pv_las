@@ -138,9 +138,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
     def pobierzWarstwyPochodne(self):
         """Ładuje warstwy pochodne z folderu .zip do projektu).
         """
-        dialog = QFileDialog()
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-        self.selected_data = dialog.getOpenFileName(
+        self.selected_data = QFileDialog.getOpenFileName(
             None, "Wybierz archiwum", "", FILE_FILTERS['ZIP'])
 
         if self.selected_data[0]:
