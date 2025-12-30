@@ -15,7 +15,7 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 - ow_pkt.shp
 - nadl_pol.shp
 
-Przykładowy zestaw warstw pochodnych jest dostępny w rozdziale "Releases" na Github.
+Przykładowy zestaw warstw pochodnych do pobrania jest dostępny [tutaj](https://downloads.envirosolutions.pl/dane/test_layers.zip).
 
 ### Instrukcja pobrania:
 1. Wtyczkę należy zainstalować w QGIS jako ZIP bądź wgrać pliki wtyczki do lokalizacji `C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`.
