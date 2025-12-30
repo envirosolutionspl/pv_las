@@ -12,6 +12,7 @@ from qgis.core import (
     QgsLayoutItemMap,
     QgsLayoutItemPicture,
     QgsLayoutItemLabel,
+    QgsTextFormat,
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsUnitTypes,
@@ -23,7 +24,7 @@ from qgis.PyQt.QtWidgets import QFileDialog
 
 from ..constants import (
     LAYOUT_CONFIG, NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, 
-    NAME_LAYER_DROGI, FILE_FILTERS
+    NAME_LAYER_DROGI, FILE_FILTERS, CRS_EPSG
 )
 from ..utils import getResultLayers, pushWarning, pobierzNazweZWarstwy
 
@@ -71,6 +72,15 @@ class WydrukGenerator:
         layout = QgsPrintLayout(self.project)
         layout.initializeDefaults()
         
+        # Zapobieganie konfliktom nazw - usuwamy stary layout o tej samej nazwie
+        layout_name = "Wydruk Farmy PV"
+        existing = self.project.layoutManager().layoutByName(layout_name)
+        if existing:
+            self.project.layoutManager().removeLayout(existing)
+            
+        layout.setName(layout_name)
+        self.project.layoutManager().addLayout(layout)
+        
         # Ustawienie rozmiaru strony
         page = layout.pageCollection().pages()[0]
         page.setPageSize(QgsLayoutSize(
@@ -111,6 +121,10 @@ class WydrukGenerator:
         if nazwa_pliku.lower().endswith('.pdf'):
             exporter.exportToPdf(nazwa_pliku, QgsLayoutExporter.PdfExportSettings())
         else:
+            # Fix for JPEG driver update access error: remove file if exists
+            if os.path.exists(nazwa_pliku):
+                try: os.remove(nazwa_pliku)
+                except: pass
             exporter.exportToImage(nazwa_pliku, QgsLayoutExporter.ImageExportSettings())
             
         return nazwa_pliku
@@ -129,7 +143,7 @@ class WydrukGenerator:
 
         map_item.setLayers(layers)
         map_item.setKeepLayerSet(True)
-        map_item.setCrs(QgsCoordinateReferenceSystem(2180))
+        map_item.setCrs(QgsCoordinateReferenceSystem(f"EPSG:{CRS_EPSG}"))
         
         map_item.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
         map_item.attemptResize(QgsLayoutSize(config['SIZE_W'], config['SIZE_H'], QgsUnitTypes.LayoutMillimeters))
@@ -169,7 +183,10 @@ class WydrukGenerator:
         """
         footer = QgsLayoutItemLabel(layout)
         footer.setText(config['TEXT'])
-        footer.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        
+        txt_format = QgsTextFormat()
+        txt_format.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        footer.setTextFormat(txt_format)
         
         layout.addLayoutItem(footer)
         
@@ -187,7 +204,11 @@ class WydrukGenerator:
         """
         title = QgsLayoutItemLabel(layout)
         title.setText(tekst)
-        title.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        
+        txt_format = QgsTextFormat()
+        txt_format.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        title.setTextFormat(txt_format)
+        
         title.adjustSizeToText()
         title.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
         layout.addLayoutItem(title)
@@ -203,13 +224,15 @@ class WydrukGenerator:
         """
         legend = QgsLayoutItemLegend(layout)
         legend.setLinkedMap(map_item)
+        legend.setAutoUpdateModel(False)
         
-        # Budowanie drzewa warstw z przekazanych warstw
-        self.layer_tree = QgsLayerTree()
+        # Budowanie drzewa warstw
+        root = legend.model().rootGroup()
+        root.clear()
         for lyr in layers_to_show:
-            self.layer_tree.addLayer(lyr)
+            if lyr:
+                root.addLayer(lyr)
 
-        legend.model().setRootGroup(self.layer_tree)
         layout.addLayoutItem(legend)
         legend.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
 
@@ -233,7 +256,10 @@ class WydrukGenerator:
         
         scaleBar.setStyle('Single Box')
         scaleBar.setUnitLabel(config['UNIT_LABEL']) 
-        scaleBar.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        
+        txt_format = QgsTextFormat()
+        txt_format.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        scaleBar.setTextFormat(txt_format)
         
         scaleBar.update()
         scaleBar.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))

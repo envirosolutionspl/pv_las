@@ -28,7 +28,7 @@ INPUT_LAYERS = {
     'drogi_lesne': {'filename': 'kom_lin.shp', 'layer_name': 'kom_lin'},
     'oddzialy': {'filename': 'oddz_pol.shp', 'layer_name': 'oddz_pol'},
     'wydzielenia_opisy': {'filename': 'ow_pkt.shp', 'layer_name': 'ow_pkt'},
-    'nadlesnictwo': {'filename': 'nadl_pol.shp', 'layer_name': 'nadl'},
+    'nadlesnictwo': {'filename': 'nadl_pol.shp', 'layer_name': 'nadl_pol'},
 }
 
 # Słownik branż wykorzystywany w formularzach
@@ -249,7 +249,6 @@ EXCEL_TABLE_STYLE = 'Table Style Medium 4'
 
 # Konfiguracja wydruku (Map Layout)
 LAYOUT_CONFIG = {
-    'MARGINS': 20,
     'PAGE': {
         'SIZE_W': 297, 'SIZE_H': 210,
     },
