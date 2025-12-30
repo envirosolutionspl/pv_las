@@ -5,11 +5,13 @@ import gc
 import unittest
 import importlib
 from unittest.mock import MagicMock
+import urllib.request
+import urllib.error
 from qgis.core import QgsApplication, QgsProject, QgsVectorLayer, QgsTask
 from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtCore import QEventLoop, QTimer
 
-from .constants import TEST_DIR, DATA_DIR
+from .constants import TEST_DIR, DATA_DIR, TEST_DATA_BASE_URL
 
 PLUGIN_DIR = os.path.dirname(TEST_DIR)
 PARENT_DIR = os.path.dirname(PLUGIN_DIR)
@@ -17,8 +19,6 @@ PLUGIN_NAME = os.path.basename(PLUGIN_DIR)
 
 if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
-
-_qgs_app = None
 
 def _initQgis():
     global _qgs_app
@@ -48,13 +48,44 @@ class QgsPluginBaseTest(unittest.TestCase):
     iface_mock = None
     dialog = None
     
+    # Lista plików wymaganych przez daną klasę testową (nadpisywana w podklasach)
+    required_files = [] 
+    
     module_dialog = None
     module_const = None
     module_utils = None
 
     @classmethod
+    def downloadTestData(cls):
+        """Pobiera pliki zdefiniowane w required_files."""
+        if not cls.required_files:
+            return
+
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+
+        for filename in cls.required_files:
+            url = f"{TEST_DATA_BASE_URL}{filename}"
+            path = os.path.join(DATA_DIR, filename)
+            
+            if not os.path.exists(path):
+                print(f" [INFO] Pobieranie: {filename}...")
+                try:
+                    urllib.request.urlretrieve(url, path)
+                except urllib.error.URLError as e:
+                    print(f" [BŁĄD] Sieciowy podczas pobierania {filename}: {e.reason}")
+                except OSError as e:
+                    print(f" [BŁĄD] Systemowy podczas zapisu pliku {filename}: {e.strerror}")
+
+    @classmethod
+    def cleanupTestData(cls):
+        """Zostawiamy pliki na dysku (Cache)."""
+        pass
+
+    @classmethod
     def setUpClass(cls):
         """Inicjalizacja raz na całą klasę testową."""
+        cls.downloadTestData()
         cls.project = QgsProject.instance()
         
         # Importy modułów
@@ -74,21 +105,36 @@ class QgsPluginBaseTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Czyszczenie po wszystkich testach w klasie."""
+        # Usuwamy warstwy z projektu QGIS
+        if cls.project:
+            cls.project.clear()
+        
+        # Czyścimy obiekt dialogu (zwalniamy referencje do warstw)
+        work_dir = None
         if cls.dialog:
             work_dir = getattr(cls.dialog, 'work_dir', None)
-            if work_dir:
-                try:
-                    work_dir.cleanup()
-                except PermissionError:
-                    print("\n Nie udało się usunąć folderu roboczego.")
-                    pass
-        cls.dialog = None
+            cls.dialog = None
+        
+        # Wymuszamy zwolnienie pamięci i uchwytów do plików
         gc.collect()
+        QgsApplication.processEvents()
+        time.sleep(0.1)
+
+        if work_dir:
+            try:
+                work_dir.cleanup()
+            except (OSError, PermissionError):
+                pass
+
+        super(QgsPluginBaseTest, cls).tearDownClass()
 
     def setUp(self):
         """Przygotowanie przed każdym testem."""
-        self.project.clear()
-        self.dialog.resetuj()
+        if self.project:
+            self.project.clear()
+        if self.dialog:
+            self.dialog.resetuj()
+        QgsApplication.processEvents()
         self.data_dir = os.path.join(TEST_DIR, 'data')
 
     def tearDown(self):

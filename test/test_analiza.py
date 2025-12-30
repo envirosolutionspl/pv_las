@@ -4,6 +4,7 @@ from .base_test import QgsPluginBaseTest, PLUGIN_NAME
 from .constants import GPKG_ANALIZA, EXPECTED_FEATURE_COUNT
 
 class TestAnaliza(QgsPluginBaseTest):
+    required_files = [GPKG_ANALIZA]
     
     def setUp(self):
         super().setUp()

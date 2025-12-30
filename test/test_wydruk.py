@@ -11,6 +11,7 @@ from .base_test import QgsPluginBaseTest, PLUGIN_NAME
 from .constants import GPKG_EKSPORT, FILENAME_WYDRUK_PDF
 
 class TestEksportWydruk(QgsPluginBaseTest):
+    required_files = [GPKG_EKSPORT]
 
     def setUp(self):
         super().setUp()

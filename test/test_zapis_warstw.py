@@ -7,6 +7,7 @@ from .base_test import QgsPluginBaseTest, PLUGIN_NAME
 from .constants import GPKG_EKSPORT, DIR_SHP_TEMP
 
 class TestEksportSHP(QgsPluginBaseTest):
+    required_files = [GPKG_EKSPORT]
 
     def setUp(self):
         super().setUp()

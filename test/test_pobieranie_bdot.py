@@ -4,6 +4,7 @@ from .base_test import QgsPluginBaseTest, PLUGIN_NAME
 from .constants import GPKG_POWIATY
 
 class TestBdotDownload(QgsPluginBaseTest):
+    required_files = [GPKG_POWIATY]
     
     def setUp(self):
         super().setUp()

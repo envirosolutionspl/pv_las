@@ -5,6 +5,7 @@ from .base_test import QgsPluginBaseTest, PLUGIN_NAME
 from .constants import ZIP_TEST_LAYERS
 
 class TestLoadZipData(QgsPluginBaseTest):
+    required_files = [ZIP_TEST_LAYERS]
     
     @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.pushMessageBoxCritical')
     @patch('qgis.PyQt.QtWidgets.QFileDialog.getOpenFileName')

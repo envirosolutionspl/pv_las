@@ -6,6 +6,7 @@ from .constants import GPKG_EKSPORT, FILENAME_REPORT_XLSX
 import warnings
 
 class TestEksportExcel(QgsPluginBaseTest):
+    required_files = [GPKG_EKSPORT]
 
     def setUp(self):
         super().setUp()
