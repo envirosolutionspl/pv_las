@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch
-from qgis.core import QgsProject
 from .base_test import QgsPluginBaseTest, PLUGIN_NAME
 from .constants import GPKG_ANALIZA, EXPECTED_FEATURE_COUNT
 
@@ -10,37 +9,38 @@ class TestAnaliza(QgsPluginBaseTest):
         super().setUp()
         gpkg = GPKG_ANALIZA
         
-        self.dialog.wydzielenia = self.load_layer(gpkg, self.module_const.INPUT_LAYERS['wydzielenia']['layer_name'], self.module_const.INPUT_LAYERS['wydzielenia']['layer_name'])
-        self.dialog.wydzielenia_opisy = self.load_layer(gpkg, self.module_const.INPUT_LAYERS['wydzielenia_opisy']['layer_name'], self.module_const.INPUT_LAYERS['wydzielenia_opisy']['layer_name'])
-        self.dialog.oddzialy = self.load_layer(gpkg, self.module_const.INPUT_LAYERS['oddzialy']['layer_name'], self.module_const.INPUT_LAYERS['oddzialy']['layer_name'])
-        self.dialog.drogi_lesne = self.load_layer(gpkg, self.module_const.INPUT_LAYERS['drogi_lesne']['layer_name'], self.module_const.INPUT_LAYERS['drogi_lesne']['layer_name'])
+        self.dialog.wydzielenia = self.loadLayer(gpkg, self.module_const.INPUT_LAYERS['wydzielenia']['layer_name'], self.module_const.INPUT_LAYERS['wydzielenia']['layer_name'])
+        self.dialog.wydzielenia_opisy = self.loadLayer(gpkg, self.module_const.INPUT_LAYERS['wydzielenia_opisy']['layer_name'], self.module_const.INPUT_LAYERS['wydzielenia_opisy']['layer_name'])
+        self.dialog.oddzialy = self.loadLayer(gpkg, self.module_const.INPUT_LAYERS['oddzialy']['layer_name'], self.module_const.INPUT_LAYERS['oddzialy']['layer_name'])
+        self.dialog.drogi_lesne = self.loadLayer(gpkg, self.module_const.INPUT_LAYERS['drogi_lesne']['layer_name'], self.module_const.INPUT_LAYERS['drogi_lesne']['layer_name'])
 
-        self.drogi_bdot = self.load_layer(gpkg, self.module_const.LAYER_NAME_BDOT10K_DROGI, self.module_const.LAYER_NAME_BDOT10K_DROGI)
-        self.linie_bdot = self.load_layer(gpkg, self.module_const.LAYER_NAME_BDOT10K_LINIE, self.module_const.LAYER_NAME_BDOT10K_LINIE)
+        self.drogi_bdot = self.loadLayer(gpkg, self.module_const.LAYER_NAME_BDOT10K_DROGI, self.module_const.LAYER_NAME_BDOT10K_DROGI)
+        self.linie_bdot = self.loadLayer(gpkg, self.module_const.LAYER_NAME_BDOT10K_LINIE, self.module_const.LAYER_NAME_BDOT10K_LINIE)
         
-        QgsProject.instance().addMapLayers([
+        self.project.addMapLayers([
             self.dialog.wydzielenia, 
             self.drogi_bdot, 
             self.linie_bdot
         ])
         
         self.dialog.mapa_bazowa = self.dialog.wydzielenia
-
+        
     @patch(f'{PLUGIN_NAME}.modules.analiza_task.applyLayerStyle')
     @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.pushMessage')
-    def test_analiza_wykonanie(self, mock_push, mock_style):
+    def testAnalizaWykonanie(self, mock_push, mock_style):
         print("\n" + "=" * 50)
         print(f"\n [TEST] Analiza danych")
         
         self.dialog.analizaData()
         task = getattr(self.dialog, 'analiza_task', None)
-        self.wait_for_task(task)
+        self.waitForTask(task)
 
-        project = QgsProject.instance()
-        lyr_obszary = project.mapLayersByName(self.module_const.NAME_LAYER_OBSZARY)
+        lyr_obszary = self.project.mapLayersByName(self.module_const.NAME_LAYER_OBSZARY)
         
-        # Sprawdzenia (Asserty)
+        # Sprawdzenie czy warstwa obszary została stworzona
         self.assertEqual(len(lyr_obszary), 1)
+        
+        # Sprawdzenie czy liczba obiektow jest poprawna
         count = lyr_obszary[0].featureCount()
         self.assertEqual(count, EXPECTED_FEATURE_COUNT)
 

@@ -123,8 +123,15 @@ class WydrukGenerator:
         else:
             # Fix for JPEG driver update access error: remove file if exists
             if os.path.exists(nazwa_pliku):
-                try: os.remove(nazwa_pliku)
-                except: pass
+                try:
+                    os.remove(nazwa_pliku)
+                except PermissionError:
+                    pushWarning(self.iface, f"Błąd: Plik {os.path.basename(nazwa_pliku)} jest używany przez inny program. Zamknij go i spróbuj ponownie.")
+                    return None
+                except OSError as e:
+                    pushWarning(self.iface, f"Nie udało się usunąć istniejącego pliku: {e}")
+                    return None
+
             exporter.exportToImage(nazwa_pliku, QgsLayoutExporter.ImageExportSettings())
             
         return nazwa_pliku
