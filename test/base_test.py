@@ -5,11 +5,10 @@ import gc
 import unittest
 import importlib
 from unittest.mock import MagicMock
-import urllib.request
-import urllib.error
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from qgis.PyQt.QtCore import QEventLoop, QUrl, QTimer
 from qgis.core import QgsApplication, QgsProject, QgsVectorLayer, QgsTask
 from qgis.gui import QgsMapCanvas
-from qgis.PyQt.QtCore import QEventLoop, QTimer
 
 from .constants import TEST_DIR, DATA_DIR, TEST_DATA_BASE_URL
 
@@ -64,18 +63,37 @@ class QgsPluginBaseTest(unittest.TestCase):
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
 
+        manager = QNetworkAccessManager()
+
         for filename in cls.required_files:
             url = f"{TEST_DATA_BASE_URL}{filename}"
             path = os.path.join(DATA_DIR, filename)
             
-            if not os.path.exists(path):
-                print(f" [INFO] Pobieranie: {filename}...")
+            if os.path.exists(path):
+                continue
+
+            print(f" [INFO] Pobieranie: {filename}...")
+            
+            request = QNetworkRequest(QUrl(url))
+            reply = manager.get(request)
+            
+            # Pętla zdarzeń
+            loop = QEventLoop()
+            reply.finished.connect(loop.quit)
+            loop.exec()
+
+            if reply.error() == QNetworkReply.NoError:
                 try:
-                    urllib.request.urlretrieve(url, path)
-                except urllib.error.URLError as e:
-                    print(f" [BŁĄD] Sieciowy podczas pobierania {filename}: {e.reason}")
+                    # Zapisywanie danych do pliku
+                    data = reply.readAll()
+                    with open(path, 'wb') as f:
+                        f.write(data.data())
                 except OSError as e:
                     print(f" [BŁĄD] Systemowy podczas zapisu pliku {filename}: {e.strerror}")
+            else:
+                print(f" [BŁĄD] Pobierania {filename}: {reply.errorString()}")
+            
+            reply.deleteLater()
 
     @classmethod
     def cleanupTestData(cls):
