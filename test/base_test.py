@@ -19,11 +19,12 @@ PLUGIN_NAME = os.path.basename(PLUGIN_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
 
-def _initQgis():
-    global _qgs_app
-    if QgsApplication.instance() is None:
-        _qgs_app = QgsApplication([], False)
-        _qgs_app.initQgis()
+def ensure_qgis():
+    """Zapewnia instancję QgsApplication i zwraca ją."""
+    instance = QgsApplication.instance()
+    if instance is None:
+        instance = QgsApplication([], False)
+        instance.initQgis()
         
         # Inicjalizacja processing
         prefix = QgsApplication.prefixPath()
@@ -34,25 +35,37 @@ def _initQgis():
         import processing
         from processing.core.Processing import Processing
         Processing.initialize()
-    else:
-        _qgs_app = QgsApplication.instance()
-    return _qgs_app
-
-# Inicjalizacja QGIS
-_qgs_app = _initQgis()
+    return instance
 
 class QgsPluginBaseTest(unittest.TestCase):
-    qgs_app = _qgs_app
+    qgs_app = None
+    network_manager = None
     project = None
     iface_mock = None
     dialog = None
     
-    # Lista plików wymaganych przez daną klasę testową (nadpisywana w podklasach)
     required_files = [] 
-    
     module_dialog = None
     module_const = None
     module_utils = None
+
+    @classmethod
+    def setUpClass(cls):
+        """Inicjalizacja raz na całą klasę testową."""
+        cls.qgs_app = ensure_qgis()
+        cls.network_manager = QNetworkAccessManager()
+        cls.downloadTestData()
+        cls.project = QgsProject.instance()
+        
+        if cls.module_dialog is None:
+            cls.module_dialog = importlib.import_module(f"{PLUGIN_NAME}.photovoltaics_LP_dialog")
+            cls.module_const = importlib.import_module(f"{PLUGIN_NAME}.constants")
+            cls.module_utils = importlib.import_module(f"{PLUGIN_NAME}.utils")
+
+        cls.iface_mock = MagicMock()
+        cls.iface_mock.mapCanvas.return_value = MagicMock(spec=QgsMapCanvas)
+        cls.module_dialog.iface = cls.iface_mock
+        cls.dialog = cls.module_dialog.PhotovoltaicsLPDialog(None)
 
     @classmethod
     def downloadTestData(cls):
@@ -62,8 +75,6 @@ class QgsPluginBaseTest(unittest.TestCase):
 
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
-
-        manager = QNetworkAccessManager()
 
         for filename in cls.required_files:
             url = f"{TEST_DATA_BASE_URL}{filename}"
@@ -75,75 +86,35 @@ class QgsPluginBaseTest(unittest.TestCase):
             print(f" [INFO] Pobieranie: {filename}...")
             
             request = QNetworkRequest(QUrl(url))
-            reply = manager.get(request)
+            reply = cls.network_manager.get(request)
             
-            # Pętla zdarzeń
             loop = QEventLoop()
             reply.finished.connect(loop.quit)
             loop.exec()
 
             if reply.error() == QNetworkReply.NoError:
                 try:
-                    # Zapisywanie danych do pliku
                     data = reply.readAll()
                     with open(path, 'wb') as f:
                         f.write(data.data())
                 except OSError as e:
-                    print(f" [BŁĄD] Systemowy podczas zapisu pliku {filename}: {e.strerror}")
+                    print(f" [BŁĄD] Systemowy: {e.strerror}")
             else:
                 print(f" [BŁĄD] Pobierania {filename}: {reply.errorString()}")
             
             reply.deleteLater()
 
     @classmethod
-    def cleanupTestData(cls):
-        """Zostawiamy pliki na dysku (Cache)."""
-        pass
-
-    @classmethod
-    def setUpClass(cls):
-        """Inicjalizacja raz na całą klasę testową."""
-        cls.downloadTestData()
-        cls.project = QgsProject.instance()
-        
-        # Importy modułów
-        if cls.module_dialog is None:
-            cls.module_dialog = importlib.import_module(f"{PLUGIN_NAME}.photovoltaics_LP_dialog")
-            cls.module_const = importlib.import_module(f"{PLUGIN_NAME}.constants")
-            cls.module_utils = importlib.import_module(f"{PLUGIN_NAME}.utils")
-
-        # Wspólny mock dla iface
-        cls.iface_mock = MagicMock()
-        cls.iface_mock.mapCanvas.return_value = MagicMock(spec=QgsMapCanvas)
-        cls.module_dialog.iface = cls.iface_mock
-
-        # Jedna instancja dialogu na klasę testową
-        cls.dialog = cls.module_dialog.PhotovoltaicsLPDialog(None)
-
-    @classmethod
     def tearDownClass(cls):
-        """Czyszczenie po wszystkich testach w klasie."""
-        # Usuwamy warstwy z projektu QGIS
+        """Czyszczenie po testach."""
         if cls.project:
             cls.project.clear()
         
-        # Czyścimy obiekt dialogu (zwalniamy referencje do warstw)
-        work_dir = None
-        if cls.dialog:
-            work_dir = getattr(cls.dialog, 'work_dir', None)
-            cls.dialog = None
+        cls.dialog = None
+        cls.network_manager = None
         
-        # Wymuszamy zwolnienie pamięci i uchwytów do plików
         gc.collect()
         QgsApplication.processEvents()
-        time.sleep(0.1)
-
-        if work_dir:
-            try:
-                work_dir.cleanup()
-            except (OSError, PermissionError):
-                pass
-
         super(QgsPluginBaseTest, cls).tearDownClass()
 
     def setUp(self):
@@ -157,7 +128,25 @@ class QgsPluginBaseTest(unittest.TestCase):
 
     def tearDown(self):
         """Czyszczenie po każdym teście."""
+        if self.project:
+            self.project.clear()
+        
+        if self.dialog:
+            self.dialog.resetuj()
+
         gc.collect()
+        QgsApplication.processEvents()
+        time.sleep(0.2)
+        if self.dialog and hasattr(self.dialog, 'work_dir'):
+            if self.dialog.work_dir:
+                try:
+                    self.dialog.work_dir.cleanup()
+                except (OSError, PermissionError) as e:
+                    print(f" [DEBUG] Windows nadal blokuje pliki: {e}")
+                finally:
+                    self.dialog.work_dir = None
+
+        QgsApplication.processEvents()
     
     def loadLayer(self, file_name, layer_name_in_gpkg=None, qgis_name="test_layer"):
         path = os.path.join(self.data_dir, file_name)
