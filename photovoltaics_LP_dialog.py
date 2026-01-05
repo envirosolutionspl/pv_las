@@ -287,11 +287,10 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, NAME_LAYER_DROGI, features_drogi)      
 
                 pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
-                folder_name = ('/').join(path.split('/')[:-1])
+                folder_name = os.path.dirname(path)
                 openFile(folder_name)
             except:
                 pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
-
 
     def tworzWarstwy(self,path, typ_geom, fields, name, features):
         """
@@ -319,7 +318,6 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             prov = layer.dataProvider()
             prov.addFeatures(features)
         
-
     def generujRaport(self):
         """
         Generuje raport i zapisuje go jako plik excela.

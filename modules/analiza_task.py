@@ -6,7 +6,7 @@ from qgis.core import (
     QgsPalLayerSettings, QgsTextFormat, QgsTextBufferSettings,
     QgsVectorLayerSimpleLabeling, QgsMapSettings, QgsRectangle
 )
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant, QMetaType
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtWidgets import QMessageBox
 
@@ -365,16 +365,16 @@ class AnalizaTask(QgsTask):
         # Definiujemy kolumny (pola) w zależności od nazwy warstwy
         if layer_name == NAME_LAYER_OBSZARY:
             pr.addAttributes([
-                QgsField(OUTPUT_ATTRS['nr_ob'], QVariant.Int),
-                QgsField(OUTPUT_ATTRS['adres_lesny'], QVariant.String),
-                QgsField(OUTPUT_ATTRS['powierzchnia'], QVariant.Double, len=10, prec=2)
+                QgsField(OUTPUT_ATTRS['nr_ob'], QMetaType.Type.Int),
+                QgsField(OUTPUT_ATTRS['adres_lesny'], QMetaType.Type.QString),
+                QgsField(OUTPUT_ATTRS['powierzchnia'], QMetaType.Type.Double, len=10, prec=2)
             ])
         elif layer_name == NAME_LAYER_LINIE or layer_name == NAME_LAYER_DROGI:
             # Dla linii i dróg kolumny są takie same
             pr.addAttributes([
-                QgsField(OUTPUT_ATTRS['nr_ob'], QVariant.Int),
-                QgsField(OUTPUT_ATTRS['odleglosc'], QVariant.Double, len=10, prec=2),
-                QgsField(OUTPUT_ATTRS['rodzaj'], QVariant.String)
+                QgsField(OUTPUT_ATTRS['nr_ob'], QMetaType.Type.Int),
+                QgsField(OUTPUT_ATTRS['odleglosc'], QMetaType.Type.Double, len=10, prec=2),
+                QgsField(OUTPUT_ATTRS['rodzaj'], QMetaType.Type.QString)
             ])
         
         layer.updateFields()
