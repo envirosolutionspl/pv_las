@@ -17,19 +17,19 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 
 Przykładowy zestaw warstw pochodnych do pobrania jest dostępny [tutaj](https://downloads.envirosolutions.pl/dane/test_layers.zip).
 
-W przypadku chęci przeanalizowania własnych danych należy pobrać warstwy pochodne dla danego nadleśnictwa z Systemu Informatycznego Lasów Państwowych. Strukutra danych, która jest konieczna do poprawnego działania wtyczki jest następująca:
+W przypadku chęci przeanalizowania własnych danych należy pobrać warstwy pochodne dla danego nadleśnictwa z Systemu Informatycznego Lasów Państwowych. Struktura danych, która jest konieczna do poprawnego działania wtyczki jest następująca:
 - wydz_pol.shp (wydzielenia - poligon):
     - id_adres (Int64) - klucz unikalny łączący geometrię wydzielenia z jego opisem z warstwy ow_pkt. Np. "1215014353"
     - adr_les (String) - pełny adres wydzielenia leśnego. Atrybut jest przypisywany do warstwy wynikowej i wyświetlany w raporcie jako identyfikator obszaru. Np. "12-15-1-01-39    -d   -00"
 - ow_pkt.shp (lokalizacja opisów wydzieleń - punkt):
     - id_adres (Int64) - klucz unikalny łączący geometrię punktu z jego opisem z warstwy wydz_pol. Np. "1215014353"
-    - g_l (String) - określa typ/klasę gleby. Wtyczka filtruje wydzielenia leśne na podstawie tego atrybutu. Wtycza szuka w ciągu znaków wartości "RV" lub "RVI". Np. "j RIVA"
+    - g_l (String) - określa typ/klasę gleby. Wtyczka filtruje wydzielenia leśne na podstawie tego atrybutu. Wtyczka szuka w ciągu znaków wartości "RV" lub "RVI". Np. "j RIVA"
 - kom_lin.shp (drogi - linia):
     - kod_ob (String) - kod, rodzaj ciągu komunikacyjnego. Wtyczka szuka obiektów, gdzie wartość pola równa się "DROGI L". Np. "DROGI L"
 - pow_pol.shp (powiaty - poligon):
     - woj (String) - kod województwa. Np. "02"
     - pow (String) - kod powiatu. Np. "15"
-    Na podstawie tych danych wtyczka wyznaczna, jakie dane pobrać z BDOT10K.
+    Na podstawie tych danych wtyczka wyznacza, jakie dane pobrać z BDOT10K.
 - nadl_pol.shp (nadleśnictwo - poligon):
     - nzw_nadl (String) - nazwa nadleśnictwa. Wtyczka wykorzystuje ten atrybut do nadawania nazwy na wydruku i w raporcie. Np. "RYTEL"
 - oddz_pol.shp (oddziały - poligon):
@@ -84,7 +84,26 @@ To use the plugin, you need QGIS version 3.28.0 or higher.
 - ow_pkt.shp
 - nadl_pol.shp
 
-An example set of layers is located in the "Releases" section on Github.
+A sample set of derived layers is available for download [here](https://downloads.envirosolutions.pl/dane/test_layers.zip).
+
+If you wish to analyze your own data, you must download the derived layers for a specific Forest District from the State Forests Information System (SILP). The data structure required for the plugin is as follows:
+
+- wydz_pol.shp (compartments - polygon):
+    - id_adres (Int64) - unique key linking the compartment geometry to its description from the ow_pkt layer. E.g., "1215014353"
+    - adr_les (String) - full address of the forest compartment. This attribute is assigned to the result layer and displayed in the report as the area identifier. E.g., "12-15-1-01-39    -d   -00"
+- ow_pkt.shp (location of compartment descriptions - point):
+    - id_adres (Int64) - unique key linking the point geometry to its description from the wydz_pol layer. E.g., "1215014353"
+    - g_l (String) - indicates the soil type/class. The plugin filters forest compartments based on this attribute. The plugin searches for the values "RV" or "RVI" in the string. E.g., "j RIVA"
+- kom_lin.shp (roads - line):
+    - kod_ob (String) - code, type of communication route. The plugin searches for objects where the field value equals "DROGI L". E.g., "DROGI L"
+- pow_pol.shp (counties - polygon):
+    - woj (String) - voivodeship code. E.g., "02"
+    - pow (String) - county code. E.g., "15"
+    Based on this data, the plugin determines which data to download from BDOT10K.
+- nadl_pol.shp (forest district - polygon):
+    - nzw_nadl (String) - name of the forest district. The plugin uses this attribute to assign a name in the printout and report. E.g., "RYTEL"
+- oddz_pol.shp (compartments - polygon):
+    - geom (Geometry) - used for spatial analysis. Based on this geometry, it is determined whether a selected road from BDOT is a forest road.
 
 ### Installation instructions:
 1. Install the plugin in QGIS as a ZIP file or upload the plugin files to the location `C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`.
@@ -93,25 +112,29 @@ An example set of layers is located in the "Releases" section on Github.
 4. If the plugin is still not visible, go to QGIS Desktop -> Plugins -> Manage and Install Plugins -> Installed -> Fotowoltaika LP -> Uninstall the plugin and reinstall it.
 
 ### Usage instructions:
-1. In the plugin window, under the Data Loading section, click the "WCZYTAJ WARSTWY POCHODNE" button. A window will open to select the zip folder containing derivative layers for the specific forest district, obtained from the State Forests Information System.
-2. After selecting the zip folder with layers, the project will load layers with forest roads and forest compartments for the given forest district, as well as the base map – Raster Topographic Map of Poland.
-3. In the plugin window, under the Data Loading section, click the "POBIERZ I WYŚWIETL DANE BDOT10K" button.
-4. The BDOT10K layers for power lines and roads within the counties containing forest compartments for the given forest district will be loaded into the project. Data loading may take a few minutes.
-5. Once the layers are loaded, you can proceed to perform an analysis for photovoltaic farms. Click the "WYKONAJ ANALIZĘ NA POTRZEBY FOTOWOLTAIKI W LP" button. The analysis may take a few minutes.
-6. Layers with designated areas and the nearest power lines and roads will be added to the project.
-7. Plugin capabilities:
-   - The plugin allows you to save layers with designated areas, nearest power lines, and nearest roads to a Shapefile by clicking the "ZAPISZ WARSTWY" button and selecting the save location in the dialog box.
-   - Additionally, the plugin allows you to generate a document in PDF format or a raster image by clicking the "GENERUJ WYDRUK" button and saving it in the chosen location.
-   - You can also generate a report (XLSX file) with a tabular list of designated areas and distances from the nearest roads and power lines, along with their types. To do this, click the "GENERUJ RAPORT" button.
-8. At any stage, you can clear data using the “Wyczyść” button.
+1. In the plugin window, under the Data Loading (Wczytywanie danych) section, click "Load derived layers" (Wczytaj warstwy pochodne). Select the ZIP folder containing the layers for the Forest District.
+2. After selection, the forest roads and sub-compartments will be loaded into the project, along with a base map (Raster Topographic Map of Poland)
+3. Click the button "Download and display BDOT10K data" (Pobierz i wyświetl dane BDOT10K).
+4. Power line and road layers from the BDOT10K database will be loaded for the relevant counties. This may take several minutes
+5. Once loaded, click "Perform PV analysis for State Forests" (Wykonaj analizę na potrzeby fotowoltaiki w LP). The analysis may take few minutes.
+6. The project will now display the identified areas, the nearest power lines, and the nearest roads.
+7. Plugin Features:
+   - Save Layers: Save identified areas and nearby infrastructure to Shapefiles by clicking "Save layers" (Zapisz warstwy).
+   - Generate Printout: Create a PDF or raster image by clicking "Generate printout" (Generuj wydruk). The layout will include the map with identified areas and infrastructure.
+   - Generate Report: Export an XLSX file with a tabular list of identified areas, including distances to the nearest roads and power lines. Click "Generate report" (Generuj raport).
+8. You can use the "Clear" (Wyczyść) button at any stage. This clears the plugin's memory and allows you to restart the process. Note: This does not remove layers already added to the QGIS layers panel.
 
 ### Notes
 - The question mark icon in the plugin window allows you to download the user guide in PDF format.
 - For the plugin to work correctly, an internet connection and spreadsheet editing software must be installed.
-- Recomended version of QGIS: 3.34.4.
+- Recommended version of QGIS: 3.34.4.
 
 #### Designated areas must meet the following criteria:
 - Managed by PGL LP,
 - Have an area greater than 1.5 hectares (individual forest compartments or neighboring groups),
 - Be agricultural land,
 - Fall into IV or lower soil bonitation classes.
+
+#### Usage Example
+
+![example_usage](przyklad_uzycia.gif)

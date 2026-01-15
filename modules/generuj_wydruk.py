@@ -111,7 +111,7 @@ class WydrukGenerator:
             self._dodajObraz(layout, self.lc[key], path)
             
         self._dodajLegende(layout, map_item, self.lc['LEGEND'], warstwy_wynikowe)
-        #self._dodajSkaleLiczbowa(layout, map_item, self.lc['NUMERIC_SCALE'])
+        self._dodajSkaleLiczbowa(layout, map_item, self.lc['NUMERIC_SCALE'])
         self._dodajSkale(layout, map_item, self.lc['SCALEBAR'])
 
         # Odświeżenie
