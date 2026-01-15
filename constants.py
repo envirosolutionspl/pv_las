@@ -76,6 +76,9 @@ LAYER_NAME_DROGI_LESNE_FILTER = "DROGI L"
 # Zmienne konfiguracyjne logiki analizy
 # =============================================================================
 
+# Graniczna wersja QGIS dla typów danych jako integer 
+QGS_VER_INT_MIN = 33000
+
 # Próg powierzchni obszarów w hektarach
 AREA_HA_THRESHOLD = 1.5
 
@@ -302,5 +305,11 @@ LAYOUT_CONFIG = {
         'UNITS_PER_SEGMENT': 3.0,
         'MAP_UNITS_PER_SCALE_BAR_UNIT': 1000.0,
         'UNIT_LABEL': "km"
+    },
+    'NUMERIC_SCALE': {
+        'POS_X': 240, 'POS_Y': 141,
+        'FONT_TYPE': 'Arial',
+        'FONT_SIZE': 10,
+        'PREFIX': 'Skala 1:'
     }
 }

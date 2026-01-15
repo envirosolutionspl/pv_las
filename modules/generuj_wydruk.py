@@ -7,6 +7,7 @@ from qgis.core import (
     QgsLayoutItemScaleBar,
     QgsScaleBarSettings,
     QgsLayoutExporter,
+    QgsRenderContext,
     QgsMapLayerType,
     QgsCoordinateReferenceSystem,
     QgsLayoutItemMap,
@@ -110,6 +111,7 @@ class WydrukGenerator:
             self._dodajObraz(layout, self.lc[key], path)
             
         self._dodajLegende(layout, map_item, self.lc['LEGEND'], warstwy_wynikowe)
+        #self._dodajSkaleLiczbowa(layout, map_item, self.lc['NUMERIC_SCALE'])
         self._dodajSkale(layout, map_item, self.lc['SCALEBAR'])
 
         # Odświeżenie
@@ -119,9 +121,12 @@ class WydrukGenerator:
         # Eksport
         exporter = QgsLayoutExporter(layout)
         if nazwa_pliku.lower().endswith('.pdf'):
-            exporter.exportToPdf(nazwa_pliku, QgsLayoutExporter.PdfExportSettings())
+            pdf_settings = QgsLayoutExporter.PdfExportSettings()
+
+            
+            exporter.exportToPdf(nazwa_pliku, pdf_settings)
         else:
-            # Fix for JPEG driver update access error: remove file if exists
+            # Poprawka dla błędu dostępu przy aktualizacji sterownika JPEG: usuń plik jeśli istnieje
             if os.path.exists(nazwa_pliku):
                 try:
                     os.remove(nazwa_pliku)
@@ -270,6 +275,23 @@ class WydrukGenerator:
         
         scaleBar.update()
         scaleBar.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
+
+    def _dodajSkaleLiczbowa(self, layout, map_item, config):
+        """
+        Dodaje skalę liczbową (1:X) do layoutu.
+        """
+        label = QgsLayoutItemLabel(layout)
+        # Pobieramy skalę z mapy i zaokrąglamy
+        scale_val = int(round(map_item.scale()))
+        label.setText(f"{config['PREFIX']}{scale_val}")
+        
+        txt_format = QgsTextFormat()
+        txt_format.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        label.setTextFormat(txt_format)
+        
+        label.adjustSizeToText()
+        layout.addLayoutItem(label)
+        label.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
 
     def _obliczZasiegMapy(self, config_scale):
         """Oblicza zasięg na podstawie nadleśnictwa lub wszystkich warstw."""

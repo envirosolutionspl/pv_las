@@ -33,7 +33,7 @@ def main(parameters, arguments):
         server=parameters.server,
         port=parameters.port,
         endpoint=ENDPOINT)
-    print("Connecting to: %s" % hide_password(address))
+    print("Connecting to: %s" % hidePassword(address))
 
     server = xmlrpc.client.ServerProxy(address, verbose=VERBOSE)
 
@@ -45,7 +45,7 @@ def main(parameters, arguments):
         print("Version ID: %s" % version_id)
     except xmlrpc.client.ProtocolError as err:
         print("A protocol error occurred")
-        print("URL: %s" % hide_password(err.url, 0))
+        print("URL: %s" % hidePassword(err.url, 0))
         print("HTTP/HTTPS headers: %s" % err.headers)
         print("Error code: %d" % err.errcode)
         print("Error message: %s" % err.errmsg)
@@ -55,7 +55,7 @@ def main(parameters, arguments):
         print("Fault string: %s" % err.faultString)
 
 
-def hide_password(url, start=6):
+def hidePassword(url, start=6):
     """Returns the http url with password part replaced with '*'.
 
     :param url: URL to upload the plugin to.

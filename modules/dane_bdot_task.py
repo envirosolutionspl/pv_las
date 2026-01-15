@@ -18,7 +18,7 @@ from ..constants import (
     LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG,
     PROVIDERS
 )
-from ..utils import pushLogInfo, pushMessage, pushWarning, applyLayerStyle
+from ..utils import pushLogInfo, pushMessage, pushWarning, applyLayerStyle, getLayerByName
 
 class PobierzBdotTask(QgsTask):
 
@@ -32,7 +32,7 @@ class PobierzBdotTask(QgsTask):
         self.features = features 
         self.iface = iface
         
-        # UI Buttons
+        # Przyciski UI
         self.wczytajBdot10kBtn = wczytajBdot10kBtn
         self.resetujBtn = resetujBtn
         self.analizaBtn = analizaBtn
@@ -66,18 +66,31 @@ class PobierzBdotTask(QgsTask):
             self._loadAndStyleLayer(self.output_drogi_path, LAYER_NAME_BDOT10K_DROGI)
             self._loadAndStyleLayer(self.output_linie_path, LAYER_NAME_BDOT10K_LINIE)
             
+            # Walidacja wczytanych warstw
+            drogi_layer = getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
+            linie_layer = getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
+            
+            valid_drogi = drogi_layer is not None and drogi_layer.isValid() and drogi_layer.featureCount() > 0
+            valid_linie = linie_layer is not None and linie_layer.isValid() and linie_layer.featureCount() > 0
+            
+            if not valid_drogi or not valid_linie:
+                pushMessage(self.iface, "Błąd: Nie pobrano poprawnie danych BDOT10k lub dane dla tego obszaru są puste. Spróbuj pobrać ponownie.")
+                self.analizaBtn.setEnabled(False)
+                self.wczytajBdot10kBtn.setEnabled(True)
+                self.resetujBtn.setEnabled(True)
+                return
+
             pushMessage(self.iface, "Pobrano i wczytano dane BDOT10k.")
+            self.analizaBtn.setEnabled(True)
+            self.resetujBtn.setEnabled(True)
+            self.wczytajBdot10kBtn.setEnabled(False)
         else:
             pushWarning(self.iface, "Nie udało się pobrać danych.")
-
-        # Przywracanie stanu UI
-        self.analizaBtn.setEnabled(result)
-        self.resetujBtn.setEnabled(result)
-        self.wczytajBdot10kBtn.setEnabled(not result)
+            self.analizaBtn.setEnabled(False)
+            self.resetujBtn.setEnabled(True)
+            self.wczytajBdot10kBtn.setEnabled(True)
 
     # --- FUNKCJE POMOCNICZE ---
-
-    # -- Funkcje pomocnicze do run --
 
     def _downloadAndExtractAll(self) -> Tuple[List[str], List[str]]:
         """Pobiera ZIPy dla wszystkich powiatów i zwraca listy ścieżek do plików SHP."""

@@ -6,7 +6,7 @@
 name=Fotowoltaika LP
 qgisMinimumVersion=3.28
 description=Wyznaczanie lokalizacji pod farmy fotowoltaiczne LP
-version=1.0.4
+version=1.0.5
 author=EnviroSolutions Sp. z o.o.
 email=office@envirosolutions.pl
 supportsQt6=true
@@ -21,9 +21,21 @@ repository=https://github.com/envirosolutionspl/pv_las
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-changelog=
-  Wersja 1.0.4
-    * Aktualizacja stopki wtyczki
+changelog=Wersja 1.0.5
+    * Przystosowano wtyczkę do Qt6
+    * Zaktualizowano README
+    * Poprawiono instrukcję (pdf)
+    * Poprawiono UI
+    * Zaktualizowano logo na wydruku
+    * Zmodułowano wtyczkę
+    * Poprawiono strukturę kodu
+    * Dodano testy automatyczne dla wszystkich funkcjonalności
+    * Udostępniono przykładowe dane na serwer
+    * Dodano GIF pokazujący działanie wtyczki
+    * Dodano kontrole czy pobrano dane z BDOT
+    * Zaktualizowano minimalną wersję QGIS na 3.28
+#  Wersja 1.0.4
+#    * Aktualizacja stopki wtyczki
 #  Wersja 1.0.3
 #    * Zmiana QGIS Feed
 #    * Zmiana minimalnej wersji QGIS na 3.22

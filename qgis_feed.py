@@ -18,7 +18,7 @@ class QgisFeed:
         self.industries_dict = INDUSTRIES
 
         self.industry_decoded = [key for key, val in self.industries_dict.items() if val == selected_industry]
-        self.plugin_name_slug = self.create_slug(plugin_name)
+        self.plugin_name_slug = self.createSlug(plugin_name)
 
         self.es_url = (
             f"{FEED_URL}?industry={self.industry_decoded[0]}&plugin={self.plugin_name_slug}" if self.industry_decoded else FEED_URL
@@ -40,13 +40,13 @@ class QgisFeed:
 
         return re.sub(r'://|\.|:|/\?|=|&|-|:', '', url)
 
-    def create_slug(self, text):
+    def createSlug(self, text):
         """
         This function makes slug from a random text
         """
         slug = self.normalizeString(text)
-        slug = re.sub(r'[^a-z0-9\s-]', '', slug.lower())  # Remove non-alphanumeric characters except spaces and hyphens
-        slug = re.sub(r'[\s]+', '-', slug)  # Replace spaces with hyphens
+        slug = re.sub(r'[^a-z0-9\s-]', '', slug.lower())  # Usuń znaki niealfanumeryczne z wyjątkiem spacji i myślników
+        slug = re.sub(r'[\s]+', '-', slug)  # Zamień spacje na myślniki
 
         return slug.strip('-')
 
@@ -67,6 +67,7 @@ class QgisFeed:
             # ponizszy fragment odpowiada za mozliwosc ciaglego wyswietlania wiadomosci
             # przy wlaczeniu qgis za kazdym razem
 
+            # Correct indentation: Only check 'cache' for keys that match the feed pattern
             if 'cache' in key:
                 check_fetch = self.checkIsFetchTime()
                 if check_fetch is True: self.s.remove(key)

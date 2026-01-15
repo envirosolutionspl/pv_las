@@ -9,9 +9,6 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QVariant, QMetaType
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtWidgets import QMessageBox
-
-from typing import List, Dict, Any, Optional, Tuple
-
 from ..constants import (
     LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE,
     VOLTAGE_TYPES, ROAD_TYPE_FOREST,
@@ -19,8 +16,23 @@ from ..constants import (
     LAYER_NAME_DROGI_LESNE_FILTER, AREA_HA_THRESHOLD,
     PROVIDERS, URI_TEMPLATE_POLYGON, URI_TEMPLATE_LINE,
     OUTPUT_ATTRS, RESULT_KEYS, INPUT_ATTRS,
-    NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI
+    NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI, QGS_VER_INT_MIN
 )
+# Warstwa kompatybilności dla Qt5/Qt6 oraz unikanie DeprecationWarning w QGIS >= 3.30
+if Qgis.QGIS_VERSION_INT >= QGS_VER_INT_MIN:
+    # Składnia dla nowszych wersji
+    TYPE_INT = QMetaType.Type.Int
+    TYPE_DOUBLE = QMetaType.Type.Double
+    TYPE_STRING = QMetaType.Type.QString
+else:
+    # Składnia dla starszych wersji
+    TYPE_INT = QVariant.Int
+    TYPE_DOUBLE = QVariant.Double
+    TYPE_STRING = QVariant.String
+
+from typing import List, Dict, Any, Optional, Tuple
+
+
 from ..utils import (
     pushLogInfo, pushMessage, pushWarning, applyLayerStyle,
     getLayerByName
@@ -177,7 +189,7 @@ class AnalizaTask(QgsTask):
         try:
             fields = drogi_lesne.fields()
             idx = fields.indexOf(INPUT_ATTRS['kod'])
-            if idx == -1: idx = 1 # Fallback to 1
+            if idx == -1: idx = 1 # Rezerwowy indeks (1)
             
             count_total = 0
             for f in drogi_lesne.getFeatures():
@@ -273,7 +285,7 @@ class AnalizaTask(QgsTask):
                         try:
                             adr = f[INPUT_ATTRS['adr_les']]
                         except KeyError:
-                            adr = f.attributes()[2] # Fallback
+                            adr = f.attributes()[2] # Rezerwowe pobranie atrybutu
                         contained_adresses.append(str(adr))
             
             obszar[OUTPUT_ATTRS['adres_lesny']] = '\n'.join(list(set(contained_adresses))) # set usuwa duplikaty
@@ -365,16 +377,16 @@ class AnalizaTask(QgsTask):
         # Definiujemy kolumny (pola) w zależności od nazwy warstwy
         if layer_name == NAME_LAYER_OBSZARY:
             pr.addAttributes([
-                QgsField(OUTPUT_ATTRS['nr_ob'], QMetaType.Type.Int),
-                QgsField(OUTPUT_ATTRS['adres_lesny'], QMetaType.Type.QString),
-                QgsField(OUTPUT_ATTRS['powierzchnia'], QMetaType.Type.Double, len=10, prec=2)
+                QgsField(OUTPUT_ATTRS['nr_ob'], TYPE_INT),
+                QgsField(OUTPUT_ATTRS['adres_lesny'], TYPE_STRING),
+                QgsField(OUTPUT_ATTRS['powierzchnia'], TYPE_DOUBLE, len=10, prec=2)
             ])
         elif layer_name == NAME_LAYER_LINIE or layer_name == NAME_LAYER_DROGI:
             # Dla linii i dróg kolumny są takie same
             pr.addAttributes([
-                QgsField(OUTPUT_ATTRS['nr_ob'], QMetaType.Type.Int),
-                QgsField(OUTPUT_ATTRS['odleglosc'], QMetaType.Type.Double, len=10, prec=2),
-                QgsField(OUTPUT_ATTRS['rodzaj'], QMetaType.Type.QString)
+                QgsField(OUTPUT_ATTRS['nr_ob'], TYPE_INT),
+                QgsField(OUTPUT_ATTRS['odleglosc'], TYPE_DOUBLE, len=10, prec=2),
+                QgsField(OUTPUT_ATTRS['rodzaj'], TYPE_STRING)
             ])
         
         layer.updateFields()

@@ -19,7 +19,7 @@ Przykładowy zestaw warstw pochodnych do pobrania jest dostępny [tutaj](https:/
 
 ### Instrukcja pobrania:
 1. Wtyczkę należy zainstalować w QGIS jako ZIP bądź wgrać pliki wtyczki do lokalizacji `C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`.
-2. Aby uruchomić wtyczkę, należy kliknąć na ikonę fotowoltaiki ze słońcem.
+2. Aby uruchomić wtyczkę, należy kliknąć na ikonę żółtego drzewka ze słońcem.
 3. Jeżeli ikona wtyczki nie jest widoczna w panelu warstw, spróbuj zrestartować QGIS.
 4. Jeżeli wtyczka nadal nie jest widoczna, należy przejść w QGIS Desktop do Wtyczki -> Zarządzanie wtyczkami -> Zainstalowane -> Fotowoltaika LP -> Odinstalować wtyczkę i zainstalować ponownie.
 
@@ -32,9 +32,9 @@ Przykładowy zestaw warstw pochodnych do pobrania jest dostępny [tutaj](https:/
 6. Do projektu zostaną załadowane warstwy z wyznaczonymi obszarami, a także warstwy z najbliższymi liniami energetycznymi i najbliższymi drogami.
 7. Możliwości wtyczki:
     - Wtyczka pozwala na zapisanie warstw z wyznaczonymi obszarami, najbliższymi liniami energetycznymi i najbliższymi drogami do pliku Shapefile po kliknięciu przycisku "Zapisz warstwy" i wybraniu lokalizacji zapisu w oknie dialogowym.
-    - Wtyczka umożliwia również wygenerowanie dokumentu w formacie PDF lub obrazu rastrowego po kliknięciu przycisku "Generuj wydruk" i zapisaniu go w lokalizacji wybranej w oknie dialogowym.
+    - Wtyczka umożliwia również wygenerowanie dokumentu w formacie PDF lub obrazu rastrowego po kliknięciu przycisku "Generuj wydruk" i zapisaniu go w lokalizacji wybranej w oknie dialogowym. Wydruk będzie zawierał mapę z wyznaczonymi obszarami, najbliższymi liniami energetycznymi i najbliższymi drogami.
     - Możliwe jest również wygenerowanie raportu (plik XLSX) z tabelarycznym wykazem wyznaczonych obszarów oraz podanymi odległościami od najbliższych dróg i linii energetycznych wraz z ich rodzajem. W tym celu należy kliknąć przycisk "Generuj raport".
-8. Na każdym etapie można wyczyścić dane za pomocą przycisku "Wyczyść".
+8. Na każdym etapie można wyczyścić dane za pomocą przycisku "Wyczyść". Czyści z pamięci wtyczki poprzednie dane i pozwala na ponowne wykonanie po kolei wszystkich kroków. Nie usuwa już uprzednio dodanych warstw. 
 
 ### Uwagi
 - Ikona ze znakiem zapytania w oknie wtyczki pozwala na pobranie instrukcji obsługi wtyczki w formacie PDF.

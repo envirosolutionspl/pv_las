@@ -28,7 +28,7 @@ import zipfile
 from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QFileDialog
+from qgis.PyQt.QtWidgets import QFileDialog, QApplication
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.utils import iface
 from qgis.core import (
@@ -79,6 +79,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.setMinimumSize(450, 550)
 
         self.iface = iface
 
@@ -228,12 +229,11 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         self.resetujBtn.setEnabled(False)
         
         # Natychmiastowe wylaczenie przyciskow
-        from qgis.PyQt.QtWidgets import QApplication
         QApplication.processEvents()
         
-        pushMessage(self.iface, 'Trwa analiza')
+        pushMessage(self.iface, 'Analiza danych')
         self.analiza_task = AnalizaTask( 
-                description='Trwa analiza',
+                description='Analiza danych',
                 wydzielenia_opisy = self.wydzielenia_opisy,
                 wydzielenia = self.wydzielenia,
                 oddzialy = self.oddzialy, 
@@ -248,7 +248,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                 parent=self
             )
                 
-        from qgis.core import QgsApplication
+        
         QgsApplication.taskManager().addTask(self.analiza_task)
 
     def zapiszWarstwy(self):
@@ -395,6 +395,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         self.zapisBtn.setEnabled(False)
         self.raportBtn.setEnabled(False)
         self.wydrukBtn.setEnabled(False)
+        pushMessage(self.iface, "Dane zostały zresetowane")
         
     def zamknij(self):
         """
