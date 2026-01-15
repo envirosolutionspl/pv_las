@@ -32,6 +32,8 @@ import os.path
 from . import PLUGIN_NAME, PLUGIN_VERSION
 from qgis.gui import *
 from qgis.core import *
+from .utils import Utils
+from .qgis_feed import QgisFeed, QgisFeedDialog
 
 class PhotovoltaicsLP:
     """QGIS Plugin Implementation."""
@@ -192,7 +194,6 @@ class PhotovoltaicsLP:
     def initFeedDelayed(self):
         """Metoda wywoływana z opóźnieniem do inicjalizacji kanalu informacyjnego."""
         try:
-            from .qgis_feed import QgisFeed
             self.selected_industry = self.settings.value("selected_industry", None)
             show_dialog = self.settings.value("showDialog", True, type=bool)
 
@@ -206,7 +207,7 @@ class PhotovoltaicsLP:
                 self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=PLUGIN_NAME)
                 self.feed.initFeed()
         except Exception as e:
-            pushLogWarning(f"Nie udało się zainicjować kanału informacyjnego: {e}")
+            Utils.pushLogWarning(f"Nie udało się zainicjować kanału informacyjnego: {e}")
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -247,7 +248,6 @@ class PhotovoltaicsLP:
             pass
 
     def showBranchSelectionDialog(self):
-        from .qgis_feed import QgisFeedDialog
         self.qgisfeed_dialog = QgisFeedDialog()
 
         if self.qgisfeed_dialog.exec() == QDialog.Accepted:

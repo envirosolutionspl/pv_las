@@ -33,10 +33,7 @@ else:
 from typing import List, Dict, Any, Optional, Tuple
 
 
-from ..utils import (
-    pushLogInfo, pushMessage, pushWarning, applyLayerStyle,
-    getLayerByName
-)
+from ..utils import Utils
 
 class AnalizaTask(QgsTask):
    
@@ -60,7 +57,7 @@ class AnalizaTask(QgsTask):
         self.rodzaj_napiecia = VOLTAGE_TYPES
 
         # Wczytywanie danych
-        pushLogInfo("AnalizaTask: Wczytywanie obiektów...")
+        Utils.pushLogInfo("AnalizaTask: Wczytywanie obiektów...")
 
         # Wydzielnie i oddziały
         self._loadSourceLayers(wydzielenia_opisy, wydzielenia, oddzialy)
@@ -76,45 +73,45 @@ class AnalizaTask(QgsTask):
         """
         Przetwarzanie w tle. Używa załadowanych list obiektów.
         """
-        pushLogInfo('Rozpoczęto wykonywanie AnalizaTask')
+        Utils.pushLogInfo('Rozpoczęto wykonywanie AnalizaTask')
         
         if self.drogi_publiczne_feats is None:
-            pushLogInfo("Ostrzeżenie: drogi_publiczne_feats jest None")
+            Utils.pushLogInfo("Ostrzeżenie: drogi_publiczne_feats jest None")
         if self.linie_feats is None:
-            pushLogInfo("Ostrzeżenie: linie_feats jest None")
+            Utils.pushLogInfo("Ostrzeżenie: linie_feats jest None")
             
 
         # Filtracja wydzielni (Poligon) po klasie bonitacji
         if self.isCanceled(): return False
         relevant_features = self._getPolygonsBySoil()
         if not relevant_features:
-            pushLogInfo("Nie znaleziono poprawnych obszarów")
+            Utils.pushLogInfo("Nie znaleziono poprawnych obszarów")
             return False
-        pushLogInfo(f"Znaleziono {len(relevant_features)} poprawnych obszarów")
+        Utils.pushLogInfo(f"Znaleziono {len(relevant_features)} poprawnych obszarów")
 
         # Operacje geometryczne
         if self.isCanceled(): return False
         single_parts = self._processGeometry(relevant_features)
         if not single_parts:
-            pushLogInfo("Nie znaleziono odpowiednich obiektów dla poprawnych ID")
+            Utils.pushLogInfo("Nie znaleziono odpowiednich obiektów dla poprawnych ID")
             return False
-        pushLogInfo(f"Operacje geometryczne: {len(single_parts)} obszarów")
+        Utils.pushLogInfo(f"Operacje geometryczne: {len(single_parts)} obszarów")
 
         # Filtracja obszarów po powierzchni 
         if self.isCanceled(): return False
         obszary_valid = self._filterValidAreaByArea(single_parts)
         if not obszary_valid:
-            pushLogInfo("Nie znaleziono odpowiednich obszarów > {AREA_HA_THRESHOLD}ha")
+            Utils.pushLogInfo("Nie znaleziono odpowiednich obszarów > {AREA_HA_THRESHOLD}ha")
             return False
-        pushLogInfo(f"Znaleziono {len(obszary_valid)} poprawnych obszarów > {AREA_HA_THRESHOLD}ha")
+        Utils.pushLogInfo(f"Znaleziono {len(obszary_valid)} poprawnych obszarów > {AREA_HA_THRESHOLD}ha")
 
         # Przypisanie adresów leśnych (adr_les) do obszarów
         if self.isCanceled(): return False
         obszary_valid = self._assignForestAdresses(obszary_valid, relevant_features)
         if not obszary_valid:
-            pushLogInfo("Nie udało się określić adresów")
+            Utils.pushLogInfo("Nie udało się określić adresów")
             return False
-        pushLogInfo(f"Określenie adresów: {len(obszary_valid)} obszarów")
+        Utils.pushLogInfo(f"Określenie adresów: {len(obszary_valid)} obszarów")
 
 
         # Analiza najbliższych linii i drog
@@ -134,12 +131,12 @@ class AnalizaTask(QgsTask):
             'lines': final_lines,
             'roads': final_roads
         }
-        pushLogInfo(f"Analiza zakończona. Linie: {len(final_lines)}, Drogi: {len(final_roads)}")
+        Utils.pushLogInfo(f"Analiza zakończona. Linie: {len(final_lines)}, Drogi: {len(final_roads)}")
         return True
 
     def finished(self, result):
         if self.isCanceled(): 
-            pushMessage(self.iface, "Analiza anulowana")
+            Utils.pushMessage(self.iface, "Analiza anulowana")
             self._toggleButtons(False)
             return
         
@@ -157,13 +154,13 @@ class AnalizaTask(QgsTask):
             self._setupLayerVisibility()
             self._zoomToResults()
 
-            pushMessage(self.iface, "Analiza zakończona sukcesem")
+            Utils.pushMessage(self.iface, "Analiza zakończona sukcesem")
             self._toggleButtons(True)
         else:
             self._handleFailure()
 
     def cancel(self):
-        pushLogInfo('AnalizaTask anulowane')
+        Utils.pushLogInfo('AnalizaTask anulowane')
         super().cancel()
 
 
@@ -174,13 +171,13 @@ class AnalizaTask(QgsTask):
     def _loadSourceLayers(self, wydzielenia_opisy: QgsVectorLayer, wydzielenia: QgsVectorLayer, oddzialy: QgsVectorLayer) -> None:
 
         self.wydzielenia_opisy_feats = [f for f in wydzielenia_opisy.getFeatures()]
-        pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_opisy_feats)} wydzielenia_opisy")
+        Utils.pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_opisy_feats)} wydzielenia_opisy")
         
         self.wydzielenia_feats = [f for f in wydzielenia.getFeatures()]
-        pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_feats)} wydzielenia")
+        Utils.pushLogInfo(f"AnalizaTask: Wczytano {len(self.wydzielenia_feats)} wydzielenia")
     
         self.oddzialy_feats = [f for f in oddzialy.getFeatures() if f.hasGeometry()]
-        pushLogInfo(f"AnalizaTask: Wczytano {len(self.oddzialy_feats)} oddzialy")
+        Utils.pushLogInfo(f"AnalizaTask: Wczytano {len(self.oddzialy_feats)} oddzialy")
 
     def _loadForestRoads(self, drogi_lesne: QgsVectorLayer) -> None:
 
@@ -203,32 +200,32 @@ class AnalizaTask(QgsTask):
                 
                 self.drogi_lesne_feats.append(f)
             
-            pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_lesne_feats)} drogi_lesne (z {count_total}) z filtrem {LAYER_NAME_DROGI_LESNE_FILTER}")
+            Utils.pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_lesne_feats)} drogi_lesne (z {count_total}) z filtrem {LAYER_NAME_DROGI_LESNE_FILTER}")
         except KeyError as e:
-            pushLogInfo(f"AnalizaTask: Błąd konfiguracji atrybutów (brak klucza): {e}")
+            Utils.pushLogInfo(f"AnalizaTask: Błąd konfiguracji atrybutów (brak klucza): {e}")
         except AttributeError as e:
-            pushLogInfo(f"AnalizaTask: Błąd dostępu do obiektu warstwy: {e}")
+            Utils.pushLogInfo(f"AnalizaTask: Błąd dostępu do obiektu warstwy: {e}")
         except Exception as e:
-            pushLogInfo(f"AnalizaTask: Nieoczekiwany błąd: {e}")
+            Utils.pushLogInfo(f"AnalizaTask: Nieoczekiwany błąd: {e}")
 
     def _loadBDOTLayers(self) -> None:
-        drogi_layer = getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
+        drogi_layer = Utils.getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
         if drogi_layer:
             self.drogi_publiczne_feats = [f for f in drogi_layer.getFeatures() if f.hasGeometry()]
-            pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_publiczne_feats)} drogi_publiczne")
+            Utils.pushLogInfo(f"AnalizaTask: Wczytano {len(self.drogi_publiczne_feats)} drogi_publiczne")
         else:
             self.drogi_publiczne_feats = None
-            pushLogInfo("AnalizaTask: Warstwa BDOT Drogi NIE znaleziona")
+            Utils.pushLogInfo("AnalizaTask: Warstwa BDOT Drogi NIE znaleziona")
 
-        linie_layer = getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
+        linie_layer = Utils.getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
         if linie_layer:
             # Filtrowanie linii według rodzaju napięcia
             self.linie_feats = [f for f in linie_layer.getFeatures() 
                                 if f.hasGeometry() and f[INPUT_ATTRS['rodzaj']] in self.rodzaj_napiecia]
-            pushLogInfo(f"AnalizaTask: Wczytano {len(self.linie_feats)} linie")
+            Utils.pushLogInfo(f"AnalizaTask: Wczytano {len(self.linie_feats)} linie")
         else:
             self.linie_feats = None
-            pushLogInfo("AnalizaTask: Warstwa BDOT Linie NIE znaleziona")
+            Utils.pushLogInfo("AnalizaTask: Warstwa BDOT Linie NIE znaleziona")
 
     # -- Funkcje pomocnicze do run --
 
@@ -413,7 +410,7 @@ class AnalizaTask(QgsTask):
             pr.addFeatures([f])
 
         layer.commitChanges()
-        applyLayerStyle(layer, layer_name)
+        Utils.applyLayerStyle(layer, layer_name)
         return layer
 
     def _applyObszaryLabeling(self, layer: QgsVectorLayer) -> None:
@@ -462,5 +459,5 @@ class AnalizaTask(QgsTask):
         self.analizaBtn.setEnabled(not success)
 
     def _handleFailure(self) -> None:
-        pushWarning(self.iface, "Analiza nie powiodła się lub została przerwana.")
+        Utils.pushWarning(self.iface, "Analiza nie powiodła się lub została przerwana.")
         self._toggleButtons(False)

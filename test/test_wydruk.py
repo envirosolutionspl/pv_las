@@ -31,9 +31,9 @@ class TestEksportWydruk(QgsPluginBaseTest):
 
         self.output_img = os.path.join(self.data_dir, FILENAME_WYDRUK_PDF)
 
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.openFile')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.Utils.openFile')
     @patch('qgis.PyQt.QtWidgets.QFileDialog.getSaveFileName')
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.pushMessage')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.Utils.pushMessage')
     def testGenerujWydrukKompletny(self, mock_push, mock_save, mock_open):
         print("\n" + "=" * 50)
         print(f"\n [TEST] Weryfikacja zawartości wydruku")
@@ -110,7 +110,7 @@ class TestEksportWydruk(QgsPluginBaseTest):
         labels = [i for i in items if isinstance(i, QgsLayoutItemLabel)]
         
         attr_name = self.module_const.LAYOUT_CONFIG['TITLE']['ATTR_NAME']
-        nazwa_nadl = self.module_utils.pobierzNazweZWarstwy(self.dialog.nadlesnictwo, attr_name, self.iface_mock)
+        nazwa_nadl = self.module_utils.Utils.pobierzNazweZWarstwy(self.dialog.nadlesnictwo, attr_name, self.iface_mock)
         
         oczekiwany_tytul = self.module_const.LAYOUT_CONFIG['TITLE']['TEXT_TEMPLATE'].format(nazwa_nadl)
         

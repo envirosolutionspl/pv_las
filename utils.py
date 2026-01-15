@@ -19,215 +19,239 @@ from . import PLUGIN_NAME
 from .constants import LAYER_STYLES, NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, NAME_LAYER_DROGI
 
 
-def getLayerByName(name: str, project: QgsProject = None):
-    """
-    Bezpiecznie zwraca obiekt warstwy o podanej nazwie lub None, jeśli nie znaleziona.
-    """
-    proj = project or QgsProject.instance()
-    layers = proj.mapLayersByName(name)
-    return layers[0] if layers else None
+
+class Utils:
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def getLayerByName(name: str, project: QgsProject = None):
+        """
+        Bezpiecznie zwraca obiekt warstwy o podanej nazwie lub None, jeśli nie znaleziona.
+        """
+        proj = project or QgsProject.instance()
+        layers = proj.mapLayersByName(name)
+        return layers[0] if layers else None
 
 
-def getResultLayers(project: QgsProject = None):
-    """
-    Zwraca słownik z obiektami warstw wynikowych.
-    """
-    return {
-        'obszary': getLayerByName(NAME_LAYER_OBSZARY, project),
-        'linie': getLayerByName(NAME_LAYER_LINIE, project),
-        'drogi': getLayerByName(NAME_LAYER_DROGI, project)
-    }
+    @staticmethod
+    def getResultLayers(project: QgsProject = None):
+        """
+        Zwraca słownik z obiektami warstw wynikowych.
+        """
+        return {
+            'obszary': Utils.getLayerByName(NAME_LAYER_OBSZARY, project),
+            'linie': Utils.getLayerByName(NAME_LAYER_LINIE, project),
+            'drogi': Utils.getLayerByName(NAME_LAYER_DROGI, project)
+        }
 
 
-def onlyNewest(dataFilelist):
-    """filtruje listę tylko do najnowszych plików według arkuszy"""
-    aktualneDict = {}
-    for dataFile in dataFilelist:
-        godlo = dataFile.godlo
-        if godlo in aktualneDict:
-            old = aktualneDict[godlo]
-            if dataFile.aktualnosc > old.aktualnosc:
+    @staticmethod
+    def onlyNewest(dataFilelist):
+        """filtruje listę tylko do najnowszych plików według arkuszy"""
+        aktualneDict = {}
+        for dataFile in dataFilelist:
+            godlo = dataFile.godlo
+            if godlo in aktualneDict:
+                old = aktualneDict[godlo]
+                if dataFile.aktualnosc > old.aktualnosc:
+                    aktualneDict[godlo] = dataFile
+            else:
                 aktualneDict[godlo] = dataFile
+        return list(aktualneDict.values())
+
+
+    @staticmethod
+    def openFile(filename):
+        """otwiera folder/plik niezależnie od systemu operacyjnego"""
+        if sys.platform == "win32":
+            os.startfile(filename)
         else:
-            aktualneDict[godlo] = dataFile
-    return list(aktualneDict.values())
+            import subprocess
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, filename])
+
+    @staticmethod
+    def pointTo2180(point, sourceCrs, project):
+        """zamiana układu na 1992"""
+        crsDest = QgsCoordinateReferenceSystem(2180)  # PL 1992
+        xform = QgsCoordinateTransform(sourceCrs, crsDest, project)
+        point1992 = xform.transform(point)
+
+        return point1992
+
+    @staticmethod
+    def layerTo2180(layer):
+        """zamiana układu na 1992"""
+        proc = processing.run("native:reprojectlayer",
+                    {'INPUT': layer,
+                        'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:2180'),
+                        'OUTPUT': 'TEMPORARY_OUTPUT'})
+        return proc['OUTPUT']
+
+    @staticmethod
+    def createPointsFromPointLayer(layer):
+        points = []
+        for feat in layer.getFeatures():
+            geom = feat.geometry()
+            if geom.isMultipart():
+                mp = geom.asMultiPoint()
+                points.extend(mp)
+            else:
+                points.append(geom.asPoint())
+        return points
+
+    @staticmethod
+    def createPointsFromLineLayer(layer, density):
+        points = []
+        for feat in layer.getFeatures():
+            geom = feat.geometry()
+            for point in geom.densifyByDistance(density).vertices():
+                if point not in points:
+                    points.append(point)
+        return points
+
+    @staticmethod
+    def createPointsFromPolygon(layer, density=1000):
+        punktyList = []
+
+        for feat in layer.getFeatures():
+            geom = feat.geometry()
+            bbox = geom.boundingBox()
+            if bbox.width() <= density or bbox.height() <= density:
+                punktyList.append(bbox.center())
+            else:
+                params = {
+                    'TYPE':0,
+                    'EXTENT':bbox,
+                    'HSPACING':density,
+                    'VSPACING':density,
+                    'HOVERLAY':0,
+                    'VOVERLAY':0,
+                    'CRS':QgsCoordinateReferenceSystem('EPSG:2180'),
+                    'OUTPUT':'memory:TEMPORARY_OUTPUT'
+                }
+                proc = processing.run("qgis:creategrid", params)
+                punkty = proc['OUTPUT']
 
 
-def openFile(filename):
-    """otwiera folder/plik niezależnie od systemu operacyjnego"""
-    if sys.platform == "win32":
-        os.startfile(filename)
-    else:
-        import subprocess
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, filename])
-
-def pointTo2180(point, sourceCrs, project):
-    """zamiana układu na 1992"""
-    crsDest = QgsCoordinateReferenceSystem(2180)  # PL 1992
-    xform = QgsCoordinateTransform(sourceCrs, crsDest, project)
-    point1992 = xform.transform(point)
-
-    return point1992
-
-def layerTo2180(layer):
-    """zamiana układu na 1992"""
-    proc = processing.run("native:reprojectlayer",
-                   {'INPUT': layer,
-                    'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:2180'),
-                    'OUTPUT': 'TEMPORARY_OUTPUT'})
-    return proc['OUTPUT']
-
-def createPointsFromPointLayer(layer):
-    points = []
-    for feat in layer.getFeatures():
-        geom = feat.geometry()
-        if geom.isMultipart():
-            mp = geom.asMultiPoint()
-            points.extend(mp)
-        else:
-            points.append(geom.asPoint())
-    return points
-
-def createPointsFromLineLayer(layer, density):
-    points = []
-    for feat in layer.getFeatures():
-        geom = feat.geometry()
-        for point in geom.densifyByDistance(density).vertices():
-            if point not in points:
-                points.append(point)
-    return points
-
-def createPointsFromPolygon(layer, density=1000):
-    punktyList = []
-
-    for feat in layer.getFeatures():
-        geom = feat.geometry()
-        bbox = geom.boundingBox()
-        if bbox.width() <= density or bbox.height() <= density:
-            punktyList.append(bbox.center())
-        else:
-            params = {
-                'TYPE':0,
-                'EXTENT':bbox,
-                'HSPACING':density,
-                'VSPACING':density,
-                'HOVERLAY':0,
-                'VOVERLAY':0,
-                'CRS':QgsCoordinateReferenceSystem('EPSG:2180'),
-                'OUTPUT':'memory:TEMPORARY_OUTPUT'
-            }
-            proc = processing.run("qgis:creategrid", params)
-            punkty = proc['OUTPUT']
+                for pointFeat in punkty.getFeatures():
+                    point = pointFeat.geometry().asPoint()
+                    if geom.contains(point):
+                        punktyList.append(point)
 
 
-            for pointFeat in punkty.getFeatures():
-                point = pointFeat.geometry().asPoint()
-                if geom.contains(point):
+                # dodanie werteksów poligonu
+                # uproszczenie geometrii
+                geom2 = geom.simplify(800)
+                for point in geom2.vertices():
                     punktyList.append(point)
 
 
-            # dodanie werteksów poligonu
-            # uproszczenie geometrii
-            geom2 = geom.simplify(800)
-            for point in geom2.vertices():
-                punktyList.append(point)
+        return punktyList
+
+    @staticmethod
+    def pushMessageBoxCritical(parent, title: str, message: str):
+        msg_box = QMessageBox(
+            QMessageBox.Icon.Critical,
+            title,
+            message,
+            QMessageBox.StandardButton.Ok,
+            parent
+        )
+        if hasattr(parent, 'plugin_icon'):
+            msg_box.setWindowIcon(QIcon(parent.plugin_icon))
+        msg_box.exec()
+
+    @staticmethod
+    def pushMessageBox(parent, message):
+        msg_box = QMessageBox(
+            QMessageBox.Icon.Information,
+            'Informacja',
+            message,
+            QMessageBox.StandardButton.Ok,
+            parent
+        )
+        if hasattr(parent, 'plugin_icon'):
+            msg_box.setWindowIcon(QIcon(parent.plugin_icon))
+        msg_box.exec()
+
+    @staticmethod
+    def pushMessage(iface, message: str) -> None:
+        iface.messageBar().pushMessage(
+            'Informacja',
+            message,
+            level=Qgis.Info,
+            duration=10
+        )
+
+    @staticmethod
+    def pushWarning(iface, message: str) -> None:
+        iface.messageBar().pushMessage(
+            'Ostrzeżenie',
+            message,
+            level=Qgis.Warning,
+            duration=10
+        )
 
 
-    return punktyList
+    @staticmethod
+    def pushLogInfo(message: str) -> None:
+        QgsMessageLog.logMessage(
+            message,
+            tag=PLUGIN_NAME,
+            level=Qgis.Info
+        )
 
-def pushMessageBoxCritical(parent, title: str, message: str):
-    msg_box = QMessageBox(
-        QMessageBox.Icon.Critical,
-        title,
-        message,
-        QMessageBox.StandardButton.Ok,
-        parent
-    )
-    if hasattr(parent, 'plugin_icon'):
-        msg_box.setWindowIcon(QIcon(parent.plugin_icon))
-    msg_box.exec()
+    @staticmethod
+    def pushLogWarning(message: str) -> None:
+        QgsMessageLog.logMessage(
+            message,
+            tag=PLUGIN_NAME,
+            level=Qgis.Warning
+        )
 
-def pushMessageBox(parent, message):
-    msg_box = QMessageBox(
-        QMessageBox.Icon.Information,
-        'Informacja',
-        message,
-        QMessageBox.StandardButton.Ok,
-        parent
-    )
-    if hasattr(parent, 'plugin_icon'):
-        msg_box.setWindowIcon(QIcon(parent.plugin_icon))
-    msg_box.exec()
-
-def pushMessage(iface, message: str) -> None:
-    iface.messageBar().pushMessage(
-        'Informacja',
-        message,
-        level=Qgis.Info,
-        duration=10
-    )
-
-def pushWarning(iface, message: str) -> None:
-    iface.messageBar().pushMessage(
-        'Ostrzeżenie',
-        message,
-        level=Qgis.Warning,
-        duration=10
-    )
+    @staticmethod
+    def pushLogCritical(message: str) -> None:
+        QgsMessageLog.logMessage(
+            message,
+            tag=PLUGIN_NAME,
+            level=Qgis.Critical
+        )
 
 
-def pushLogInfo(message: str) -> None:
-    QgsMessageLog.logMessage(
-        message,
-        tag=PLUGIN_NAME,
-        level=Qgis.Info
-    )
+    @staticmethod
+    def applyLayerStyle(layer, style_name):
+        """
+        Aplikuje styl do warstwy pobierając konfigurację 1:1 z constants.LAYER_STYLES.
+        """
+        
+        if style_name not in LAYER_STYLES:
+            return
 
-def pushLogWarning(message: str) -> None:
-    QgsMessageLog.logMessage(
-        message,
-        tag=PLUGIN_NAME,
-        level=Qgis.Warning
-    )
-
-def pushLogCritical(message: str) -> None:
-    QgsMessageLog.logMessage(
-        message,
-        tag=PLUGIN_NAME,
-        level=Qgis.Critical
-    )
-
-
-def applyLayerStyle(layer, style_name):
-    """
-    Aplikuje styl do warstwy pobierając konfigurację 1:1 z constants.LAYER_STYLES.
-    """
-    
-    if style_name not in LAYER_STYLES:
-        return
-
-    props = LAYER_STYLES[style_name]
-    
-    geom_type = layer.geometryType()
-    
-    if geom_type == QgsWkbTypes.PolygonGeometry:
-        symbol = QgsFillSymbol.createSimple(props)
-    else:
-        symbol = QgsLineSymbol.createSimple(props)
-    if symbol:
-        layer.setRenderer(QgsSingleSymbolRenderer(symbol))
-        layer.triggerRepaint()
-
-def pobierzNazweZWarstwy(warstwa, attr_name, iface):
-    """Pobiera tekst z konkretnego atrybutu pierwszego obiektu warstwy."""
-    if warstwa:
-        feat = next(warstwa.getFeatures(), None)
-        if feat:
-            try: 
-                return str(feat[attr_name])
-            except KeyError: 
-                pushWarning(iface, "Błąd: Brak pola " + attr_name)
+        props = LAYER_STYLES[style_name]
+        
+        geom_type = layer.geometryType()
+        
+        if geom_type == QgsWkbTypes.PolygonGeometry:
+            symbol = QgsFillSymbol.createSimple(props)
         else:
-             pushWarning(iface, "Błąd: Nie znaleziono obiektu w warstwie " + warstwa.name())
-    return "Nieznany"
+            symbol = QgsLineSymbol.createSimple(props)
+        if symbol:
+            layer.setRenderer(QgsSingleSymbolRenderer(symbol))
+            layer.triggerRepaint()
+
+    @staticmethod
+    def pobierzNazweZWarstwy(warstwa, attr_name, iface):
+        """Pobiera tekst z konkretnego atrybutu pierwszego obiektu warstwy."""
+        if warstwa:
+            feat = next(warstwa.getFeatures(), None)
+            if feat:
+                try: 
+                    return str(feat[attr_name])
+                except KeyError: 
+                    Utils.pushWarning(iface, "Błąd: Brak pola " + attr_name)
+            else:
+                    Utils.pushWarning(iface, "Błąd: Nie znaleziono obiektu w warstwie " + warstwa.name())
+        return "Nieznany"

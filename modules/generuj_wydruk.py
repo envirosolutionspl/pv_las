@@ -27,7 +27,7 @@ from ..constants import (
     LAYOUT_CONFIG, NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, 
     NAME_LAYER_DROGI, FILE_FILTERS, CRS_EPSG
 )
-from ..utils import getResultLayers, pushWarning, pobierzNazweZWarstwy
+from ..utils import Utils
 
 class WydrukGenerator:
     def __init__(self, parent):
@@ -51,7 +51,7 @@ class WydrukGenerator:
         wszystkie = []
         
         # Warstwy wektorowe (wyniki)
-        results = getResultLayers(self.project)
+        results = Utils.getResultLayers(self.project)
         wszystkie.extend([l for l in results.values() if l])
         
         # Warstwy rastrowe 
@@ -94,7 +94,7 @@ class WydrukGenerator:
         extent = self._obliczZasiegMapy(self.lc['MAP']['EXTENT_SCALE'])
 
         # Nazwa nadleśnictwa
-        nazwa_nadl = pobierzNazweZWarstwy(self.nadlesnictwo, self.lc['TITLE']['ATTR_NAME'], self.iface)
+        nazwa_nadl = Utils.pobierzNazweZWarstwy(self.nadlesnictwo, self.lc['TITLE']['ATTR_NAME'], self.iface)
         tytul_pelny = self.lc['TITLE']['TEXT_TEMPLATE'].format(nazwa_nadl)
         
         # Przygotowanie warstw wynikowych
@@ -131,10 +131,10 @@ class WydrukGenerator:
                 try:
                     os.remove(nazwa_pliku)
                 except PermissionError:
-                    pushWarning(self.iface, f"Błąd: Plik {os.path.basename(nazwa_pliku)} jest używany przez inny program. Zamknij go i spróbuj ponownie.")
+                    Utils.pushWarning(self.iface, f"Błąd: Plik {os.path.basename(nazwa_pliku)} jest używany przez inny program. Zamknij go i spróbuj ponownie.")
                     return None
                 except OSError as e:
-                    pushWarning(self.iface, f"Nie udało się usunąć istniejącego pliku: {e}")
+                    Utils.pushWarning(self.iface, f"Nie udało się usunąć istniejącego pliku: {e}")
                     return None
 
             exporter.exportToImage(nazwa_pliku, QgsLayoutExporter.ImageExportSettings())
