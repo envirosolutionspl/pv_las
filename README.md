@@ -17,6 +17,24 @@ Warunkiem koniecznym do prawidłowego działania wtyczki jest posiadanie wersji 
 
 Przykładowy zestaw warstw pochodnych do pobrania jest dostępny [tutaj](https://downloads.envirosolutions.pl/dane/test_layers.zip).
 
+W przypadku chęci przeanalizowania własnych danych należy pobrać warstwy pochodne dla danego nadleśnictwa z Systemu Informatycznego Lasów Państwowych. Strukutra danych, która jest konieczna do poprawnego działania wtyczki jest następująca:
+- wydz_pol.shp (wydzielenia - poligon):
+    - id_adres (Int64) - klucz unikalny łączący geometrię wydzielenia z jego opisem z warstwy ow_pkt. Np. "1215014353"
+    - adr_les (String) - pełny adres wydzielenia leśnego. Atrybut jest przypisywany do warstwy wynikowej i wyświetlany w raporcie jako identyfikator obszaru. Np. "12-15-1-01-39    -d   -00"
+- ow_pkt.shp (lokalizacja opisów wydzieleń - punkt):
+    - id_adres (Int64) - klucz unikalny łączący geometrię punktu z jego opisem z warstwy wydz_pol. Np. "1215014353"
+    - g_l (String) - określa typ/klasę gleby. Wtyczka filtruje wydzielenia leśne na podstawie tego atrybutu. Wtycza szuka w ciągu znaków wartości "RV" lub "RVI". Np. "j RIVA"
+- kom_lin.shp (drogi - linia):
+    - kod_ob (String) - kod, rodzaj ciągu komunikacyjnego. Wtyczka szuka obiektów, gdzie wartość pola równa się "DROGI L". Np. "DROGI L"
+- pow_pol.shp (powiaty - poligon):
+    - woj (String) - kod województwa. Np. "02"
+    - pow (String) - kod powiatu. Np. "15"
+    Na podstawie tych danych wtyczka wyznaczna, jakie dane pobrać z BDOT10K.
+- nadl_pol.shp (nadleśnictwo - poligon):
+    - nzw_nadl (String) - nazwa nadleśnictwa. Wtyczka wykorzystuje ten atrybut do nadawania nazwy na wydruku i w raporcie. Np. "RYTEL"
+- oddz_pol.shp (oddziały - poligon):
+    - geom (Geometria) - Wykorzystywany do analizy przestrzennej. Na podstawie tej geometrii definiuje się, czy wybrana droga z BDOT jest leśna.
+
 ### Instrukcja pobrania:
 1. Wtyczkę należy zainstalować w QGIS jako ZIP bądź wgrać pliki wtyczki do lokalizacji `C:\Users\User\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`.
 2. Aby uruchomić wtyczkę, należy kliknąć na ikonę żółtego drzewka ze słońcem.
