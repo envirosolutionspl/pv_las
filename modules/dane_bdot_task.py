@@ -18,7 +18,7 @@ from ..constants import (
     LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG,
     PROVIDERS
 )
-from ..utils import Utils
+from ..utils import LayerUtils, MessageUtils
 
 class PobierzBdotTask(QgsTask):
 
@@ -43,7 +43,7 @@ class PobierzBdotTask(QgsTask):
 
     def run(self):
         """Logika działająca w tle."""
-        Utils.pushLogInfo(f'Start PobierzBdotTask. Temp: {self.temp_dir_path}')
+        MessageUtils.pushLogInfo(f'Start PobierzBdotTask. Temp: {self.temp_dir_path}')
         
         # Pobieranie i wypakowywanie plików
         drogi_files, linie_files = self._downloadAndExtractAll()
@@ -67,25 +67,25 @@ class PobierzBdotTask(QgsTask):
             self._loadAndStyleLayer(self.output_linie_path, LAYER_NAME_BDOT10K_LINIE)
             
             # Walidacja wczytanych warstw
-            drogi_layer = Utils.getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
-            linie_layer = Utils.getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
+            drogi_layer = LayerUtils.getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
+            linie_layer = LayerUtils.getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
             
             valid_drogi = drogi_layer is not None and drogi_layer.isValid() and drogi_layer.featureCount() > 0
             valid_linie = linie_layer is not None and linie_layer.isValid() and linie_layer.featureCount() > 0
             
             if not valid_drogi or not valid_linie:
-                Utils.pushMessage(self.iface, "Błąd: Nie pobrano poprawnie danych BDOT10k lub dane dla tego obszaru są puste. Spróbuj pobrać ponownie.")
+                MessageUtils.pushMessage(self.iface, "Błąd: Nie pobrano poprawnie danych BDOT10k lub dane dla tego obszaru są puste. Spróbuj pobrać ponownie.")
                 self.analizaBtn.setEnabled(False)
                 self.wczytajBdot10kBtn.setEnabled(True)
                 self.resetujBtn.setEnabled(True)
                 return
 
-            Utils.pushMessage(self.iface, "Pobrano i wczytano dane BDOT10k.")
+            MessageUtils.pushMessage(self.iface, "Pobrano i wczytano dane BDOT10k.")
             self.analizaBtn.setEnabled(True)
             self.resetujBtn.setEnabled(True)
             self.wczytajBdot10kBtn.setEnabled(False)
         else:
-            Utils.pushWarning(self.iface, "Nie udało się pobrać danych.")
+            MessageUtils.pushWarning(self.iface, "Nie udało się pobrać danych.")
             self.analizaBtn.setEnabled(False)
             self.resetujBtn.setEnabled(True)
             self.wczytajBdot10kBtn.setEnabled(True)
@@ -121,7 +121,7 @@ class PobierzBdotTask(QgsTask):
         reply = request.reply()
         
         if reply.error() != QNetworkReply.NetworkError.NoError:
-            Utils.pushLogInfo(f"Błąd sieci ({url}): {reply.errorString()}")
+            MessageUtils.pushLogInfo(f"Błąd sieci ({url}): {reply.errorString()}")
             return None
         return reply.content()
 
@@ -140,7 +140,7 @@ class PobierzBdotTask(QgsTask):
                     elif file.endswith(BDOT_FILE_SUFFIX_LINIE):
                         l_list.append(full_path)
         except Exception as e:
-            Utils.pushLogInfo(f"Błąd wypakowywania: {e}")
+            MessageUtils.pushLogInfo(f"Błąd wypakowywania: {e}")
             
         return d_list, l_list
 
@@ -156,7 +156,7 @@ class PobierzBdotTask(QgsTask):
             processing.run("native:mergevectorlayers", params)
             return out_path if os.path.exists(out_path) else None
         except Exception as e:
-            Utils.pushLogInfo(f"Błąd Merge ({output_filename}): {e}")
+            MessageUtils.pushLogInfo(f"Błąd Merge ({output_filename}): {e}")
             return None
 
     # -- Funkcje pomocnicze do finished --
@@ -168,8 +168,8 @@ class PobierzBdotTask(QgsTask):
 
         vlayer = QgsVectorLayer(path, layer_name, PROVIDERS['OGR'])
         if vlayer.isValid():
-            Utils.applyLayerStyle(vlayer, layer_name)
+            LayerUtils.applyLayerStyle(vlayer, layer_name)
             self.project.addMapLayer(vlayer)
-            Utils.pushLogInfo(f"Poprawnie wczytano warstwę: {layer_name}")
+            MessageUtils.pushLogInfo(f"Poprawnie wczytano warstwę: {layer_name}")
         else:
-            Utils.pushLogInfo(f"Błąd walidacji warstwy: {layer_name}")
+            MessageUtils.pushLogInfo(f"Błąd walidacji warstwy: {layer_name}")

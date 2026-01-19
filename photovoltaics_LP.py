@@ -32,7 +32,7 @@ import os.path
 from . import PLUGIN_NAME, PLUGIN_VERSION
 from qgis.gui import *
 from qgis.core import *
-from .utils import Utils
+from .utils import MessageUtils
 from .qgis_feed import QgisFeed, QgisFeedDialog
 
 class PhotovoltaicsLP:
@@ -61,9 +61,7 @@ class PhotovoltaicsLP:
         self.first_start = True
 
         # initialize locale
-        user_locale = self.settings.value('locale/userLocale', 'pl')
-        if not user_locale or not isinstance(user_locale, str):
-            user_locale = 'pl'
+        user_locale = self.settings.value('locale/userLocale', 'pl', type=str) or 'pl'
         locale = user_locale[0:2]
         
         locale_path = os.path.join(
@@ -207,7 +205,7 @@ class PhotovoltaicsLP:
                 self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=PLUGIN_NAME)
                 self.feed.initFeed()
         except Exception as e:
-            Utils.pushLogWarning(f"Nie udało się zainicjować kanału informacyjnego: {e}")
+            MessageUtils.pushLogWarning(f"Nie udało się zainicjować kanału informacyjnego: {e}")
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""

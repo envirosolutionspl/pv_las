@@ -31,9 +31,9 @@ class TestEksportExcel(QgsPluginBaseTest):
 
         self.output_xlsx = os.path.join(self.data_dir, FILENAME_REPORT_XLSX)
 
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.Utils.openFile')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.FileUtils.openFile')
     @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.ZapiszXLSX.zapiszExcel')
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.Utils.pushMessage')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.MessageUtils.pushMessage')
     def testGenerujRaportProces(self, mock_push, mock_save, mock_open):
         print("\n" + "=" * 50)
         print(f"\n [TEST] Eksport do Excela")

@@ -9,7 +9,7 @@ import os
 import unicodedata
 
 from .constants import INDUSTRIES, FEED_URL
-from .utils import Utils
+from .utils import MessageUtils
 
 
 class QgisFeed:
@@ -58,7 +58,7 @@ class QgisFeed:
         """
         Function registers QGIS Feed
         """
-        Utils.pushLogInfo('Zapisuję feed')
+        MessageUtils.pushLogInfo('Zapisuję feed')
         for key in self.s.allKeys():
             if self.envirosolutionsFeedPattern_old.match(key) or self.envirosolutionsFeedPattern_new.match(key):
                 finalKey = re.sub(r'(\d+)', r'9999\1', key.replace(self.industry_url_short, 'httpsfeedqgisorg'))

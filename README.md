@@ -67,7 +67,7 @@ W przypadku chęci przeanalizowania własnych danych należy pobrać warstwy poc
 
 #### Przykład użycia
 
-![przyklad_uzycia](przyklad_uzycia.gif)
+![przyklad_uzycia](docs\przyklad_uzycia.gif)
 
 ## EN
 
@@ -137,4 +137,4 @@ If you wish to analyze your own data, you must download the derived layers for a
 
 #### Usage Example
 
-![example_usage](przyklad_uzycia.gif)
+![example_usage](docs\przyklad_uzycia.gif)
