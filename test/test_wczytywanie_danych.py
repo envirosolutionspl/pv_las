@@ -7,7 +7,7 @@ from .constants import ZIP_TEST_LAYERS
 class TestLoadZipData(QgsPluginBaseTest):
     required_files = [ZIP_TEST_LAYERS]
     
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.pushMessageBoxCritical')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.MessageUtils.pushMessageBoxCritical')
     @patch('qgis.PyQt.QtWidgets.QFileDialog.getOpenFileName')
     def testPobierzWarstwyPochodneZip(self, mock_file_dialog, mock_critical):
         print("\n" + "=" * 50)

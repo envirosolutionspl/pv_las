@@ -12,7 +12,7 @@ class TestBdotDownload(QgsPluginBaseTest):
         self.dialog.powiaty = self.loadLayer(GPKG_POWIATY, self.module_const.INPUT_LAYERS['powiaty']['layer_name'], self.module_const.INPUT_LAYERS['powiaty']['layer_name'])
         self.project.addMapLayer(self.dialog.powiaty)
 
-    @patch(f'{PLUGIN_NAME}.modules.dane_bdot_task.applyLayerStyle')
+    @patch(f'{PLUGIN_NAME}.modules.dane_bdot_task.LayerUtils.applyLayerStyle')
     def testPobieranieBdot(self, mock_style):
         print("\n" + "=" * 50)
         print(f"\n [TEST] Pobieranie danych BDOT10k")

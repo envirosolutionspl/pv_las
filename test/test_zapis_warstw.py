@@ -24,9 +24,9 @@ class TestEksportSHP(QgsPluginBaseTest):
             shutil.rmtree(self.output_dir)
         os.makedirs(self.output_dir)
 
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.openFile')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.FileUtils.openFile')
     @patch('qgis.PyQt.QtWidgets.QFileDialog.getSaveFileName')
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.pushMessage')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.MessageUtils.pushMessage')
     def testZapiszWarstwyWszystkie(self, mock_push, mock_save_dialog, mock_open):
         print("\n" + "=" * 50)
         print("\n [TEST] Eksport warstw SHP")

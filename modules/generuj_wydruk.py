@@ -7,6 +7,7 @@ from qgis.core import (
     QgsLayoutItemScaleBar,
     QgsScaleBarSettings,
     QgsLayoutExporter,
+    QgsRenderContext,
     QgsMapLayerType,
     QgsCoordinateReferenceSystem,
     QgsLayoutItemMap,
@@ -26,7 +27,7 @@ from ..constants import (
     LAYOUT_CONFIG, NAME_LAYER_OBSZARY, NAME_LAYER_LINIE, 
     NAME_LAYER_DROGI, FILE_FILTERS, CRS_EPSG
 )
-from ..utils import getResultLayers, pushWarning, pobierzNazweZWarstwy
+from ..utils import LayerUtils, MessageUtils
 
 class WydrukGenerator:
     def __init__(self, parent):
@@ -50,7 +51,7 @@ class WydrukGenerator:
         wszystkie = []
         
         # Warstwy wektorowe (wyniki)
-        results = getResultLayers(self.project)
+        results = LayerUtils.getResultLayers(self.project)
         wszystkie.extend([l for l in results.values() if l])
         
         # Warstwy rastrowe 
@@ -93,7 +94,7 @@ class WydrukGenerator:
         extent = self._obliczZasiegMapy(self.lc['MAP']['EXTENT_SCALE'])
 
         # Nazwa nadleśnictwa
-        nazwa_nadl = pobierzNazweZWarstwy(self.nadlesnictwo, self.lc['TITLE']['ATTR_NAME'], self.iface)
+        nazwa_nadl = LayerUtils.getNameFromLayer(self.nadlesnictwo, self.lc['TITLE']['ATTR_NAME'], self.iface)
         tytul_pelny = self.lc['TITLE']['TEXT_TEMPLATE'].format(nazwa_nadl)
         
         # Przygotowanie warstw wynikowych
@@ -110,6 +111,7 @@ class WydrukGenerator:
             self._dodajObraz(layout, self.lc[key], path)
             
         self._dodajLegende(layout, map_item, self.lc['LEGEND'], warstwy_wynikowe)
+        self._dodajSkaleLiczbowa(layout, map_item, self.lc['NUMERIC_SCALE'])
         self._dodajSkale(layout, map_item, self.lc['SCALEBAR'])
 
         # Odświeżenie
@@ -119,17 +121,20 @@ class WydrukGenerator:
         # Eksport
         exporter = QgsLayoutExporter(layout)
         if nazwa_pliku.lower().endswith('.pdf'):
-            exporter.exportToPdf(nazwa_pliku, QgsLayoutExporter.PdfExportSettings())
+            pdf_settings = QgsLayoutExporter.PdfExportSettings()
+
+            
+            exporter.exportToPdf(nazwa_pliku, pdf_settings)
         else:
-            # Fix for JPEG driver update access error: remove file if exists
+            # Poprawka dla błędu dostępu przy aktualizacji sterownika JPEG: usuń plik jeśli istnieje
             if os.path.exists(nazwa_pliku):
                 try:
                     os.remove(nazwa_pliku)
                 except PermissionError:
-                    pushWarning(self.iface, f"Błąd: Plik {os.path.basename(nazwa_pliku)} jest używany przez inny program. Zamknij go i spróbuj ponownie.")
+                    MessageUtils.pushWarning(self.iface, f"Błąd: Plik {os.path.basename(nazwa_pliku)} jest używany przez inny program. Zamknij go i spróbuj ponownie.")
                     return None
                 except OSError as e:
-                    pushWarning(self.iface, f"Nie udało się usunąć istniejącego pliku: {e}")
+                    MessageUtils.pushWarning(self.iface, f"Nie udało się usunąć istniejącego pliku: {e}")
                     return None
 
             exporter.exportToImage(nazwa_pliku, QgsLayoutExporter.ImageExportSettings())
@@ -270,6 +275,23 @@ class WydrukGenerator:
         
         scaleBar.update()
         scaleBar.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
+
+    def _dodajSkaleLiczbowa(self, layout, map_item, config):
+        """
+        Dodaje skalę liczbową (1:X) do layoutu.
+        """
+        label = QgsLayoutItemLabel(layout)
+        # Pobieramy skalę z mapy i zaokrąglamy
+        scale_val = int(round(map_item.scale()))
+        label.setText(f"{config['PREFIX']}{scale_val}")
+        
+        txt_format = QgsTextFormat()
+        txt_format.setFont(QFont(config['FONT_TYPE'], config['FONT_SIZE']))
+        label.setTextFormat(txt_format)
+        
+        label.adjustSizeToText()
+        layout.addLayoutItem(label)
+        label.attemptMove(QgsLayoutPoint(config['POS_X'], config['POS_Y'], QgsUnitTypes.LayoutMillimeters))
 
     def _obliczZasiegMapy(self, config_scale):
         """Oblicza zasięg na podstawie nadleśnictwa lub wszystkich warstw."""

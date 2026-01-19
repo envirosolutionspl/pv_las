@@ -19,7 +19,7 @@ PLUGIN_NAME = os.path.basename(PLUGIN_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.insert(0, PARENT_DIR)
 
-def ensure_qgis():
+def ensureQgis():
     """Zapewnia instancję QgsApplication i zwraca ją."""
     instance = QgsApplication.instance()
     if instance is None:
@@ -52,7 +52,7 @@ class QgsPluginBaseTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Inicjalizacja raz na całą klasę testową."""
-        cls.qgs_app = ensure_qgis()
+        cls.qgs_app = ensureQgis()
         cls.network_manager = QNetworkAccessManager()
         cls.downloadTestData()
         cls.project = QgsProject.instance()

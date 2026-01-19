@@ -21,21 +21,19 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
+from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QToolBar, QApplication, QMessageBox, QDialog, QComboBox
 from qgis.PyQt import uic
 
 # Initialize Qt resources from file resources.py
-from .resources import *
-# Import the code for the dialog
-from .photovoltaics_LP_dialog import PhotovoltaicsLPDialog
+# resources.py is imported in initGui to avoid blocking startup
 import os.path
-
-from .qgis_feed import QgisFeedDialog
+from . import PLUGIN_NAME, PLUGIN_VERSION
 from qgis.gui import *
 from qgis.core import *
-from . import PLUGIN_NAME, PLUGIN_VERSION
+from .utils import MessageUtils
+from .qgis_feed import QgisFeed, QgisFeedDialog
 
 class PhotovoltaicsLP:
     """QGIS Plugin Implementation."""
@@ -48,30 +46,24 @@ class PhotovoltaicsLP:
             application at run time.
         :type iface: QgsInterface
         """
-        self.settings = QgsSettings() 
-
-        if Qgis.QGIS_VERSION_INT >= 31000:
-            from .qgis_feed import QgisFeed
-            self.selected_industry = self.settings.value("selected_industry", None)
-            show_dialog = self.settings.value("showDialog", True, type=bool)
-
-            if self.selected_industry is None and show_dialog:
-                self.showBranchSelectionDialog()
-
-            select_indust_session = self.settings.value('selected_industry')
-
-            self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=PLUGIN_NAME)
-            self.feed.initFeed()
-
         # Save reference to the QGIS interface
         self.iface = iface
+        self.settings = QgsSettings() 
 
-        self.dlg = PhotovoltaicsLPDialog()
-        
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+
+        # Declare instance attributes
+        self.actions = []
+        self.menu = u'&EnviroSolutions'
+        self.toolbar = None
+        self.dlg = None
+        self.first_start = True
+
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        user_locale = self.settings.value('locale/userLocale', 'pl', type=str) or 'pl'
+        locale = user_locale[0:2]
+        
         locale_path = os.path.join(
             self.plugin_dir,
             'i18n',
@@ -81,18 +73,6 @@ class PhotovoltaicsLP:
             self.translator = QTranslator()
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
-
-        # Declare instance attributes
-        self.actions = []
-        self.menu = u'&EnviroSolutions'
-        self.toolbar = self.iface.mainWindow().findChild(QToolBar, 'EnviroSolutions')
-        if not self.toolbar:
-            self.toolbar = self.iface.addToolBar(u'EnviroSolutions')
-            self.toolbar.setObjectName(u'EnviroSolutions')
-
-        # Check if plugin was started the first time in current QGIS session
-        # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
   
 
     # noinspection PyMethodMayBeStatic
@@ -174,8 +154,6 @@ class PhotovoltaicsLP:
         if whats_this is not None:
             action.setWhatsThis(whats_this)
 
-      
-
         if add_to_menu:
             self.iface.addPluginToMenu(
                 self.menu,
@@ -183,20 +161,23 @@ class PhotovoltaicsLP:
 
         self.actions.append(action)
 
-
-
-        
-
         if add_to_toolbar:
             self.toolbar.addAction(action)
-
-    
-
 
         return action
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
+        # Initialize Qt resources from file resources.py
+        from . import resources
+
+        # Inicjalizacja paska narzędzi i menu (bezpieczniej w initGui)
+        if not self.toolbar:
+            self.toolbar = self.iface.mainWindow().findChild(QToolBar, 'EnviroSolutions')
+            if not self.toolbar:
+                self.toolbar = self.iface.addToolBar(u'EnviroSolutions')
+                self.toolbar.setObjectName(u'EnviroSolutions')
+
         icon_path = ':/plugins/photovoltaics_LP/icons/fotowoltaika.svg'
         self.add_action(
             icon_path,
@@ -204,12 +185,27 @@ class PhotovoltaicsLP:
             callback=self.run,
             parent=self.iface.mainWindow())
 
-        # will be set False in run()
-        self.first_start = True
+        # Inicjalizacja feedu z opóźnieniem, aby nie blokować startu QGIS
+        if Qgis.QGIS_VERSION_INT >= 31000:
+            QTimer.singleShot(1000, self.initFeedDelayed)
 
-        # informacje o wersji
-        self.dlg.setWindowTitle('%s %s' % (PLUGIN_NAME, PLUGIN_VERSION))
-        self.dlg.lbl_pluginVersion.setText('%s %s' % (PLUGIN_NAME, PLUGIN_VERSION))
+    def initFeedDelayed(self):
+        """Metoda wywoływana z opóźnieniem do inicjalizacji kanalu informacyjnego."""
+        try:
+            self.selected_industry = self.settings.value("selected_industry", None)
+            show_dialog = self.settings.value("showDialog", True, type=bool)
+
+            if self.selected_industry is None and show_dialog:
+                # Tylko jeśli mamy dostęp do okna głównego
+                if self.iface.mainWindow():
+                    self.showBranchSelectionDialog()
+
+            select_indust_session = self.settings.value('selected_industry')
+            if select_indust_session:
+                self.feed = QgisFeed(selected_industry=select_indust_session, plugin_name=PLUGIN_NAME)
+                self.feed.initFeed()
+        except Exception as e:
+            MessageUtils.pushLogWarning(f"Nie udało się zainicjować kanału informacyjnego: {e}")
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -228,8 +224,14 @@ class PhotovoltaicsLP:
     def run(self):
         """Run method that performs all the real work"""
 
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+        # Leniwa inicjalizacja dialogu - dopiero przy pierwszym uruchomieniu przez użytkownika
+        if self.dlg is None:
+            from .photovoltaics_LP_dialog import PhotovoltaicsLPDialog
+            self.dlg = PhotovoltaicsLPDialog()
+            self.dlg.setWindowTitle('%s %s' % (PLUGIN_NAME, PLUGIN_VERSION))
+            if hasattr(self.dlg, 'lbl_pluginVersion'):
+                self.dlg.lbl_pluginVersion.setText('%s %s' % (PLUGIN_NAME, PLUGIN_VERSION))
+
         if self.first_start == True:
             self.first_start = False
 

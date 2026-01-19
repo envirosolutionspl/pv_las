@@ -26,8 +26,8 @@ class TestAnaliza(QgsPluginBaseTest):
         
         self.dialog.mapa_bazowa = self.dialog.wydzielenia
         
-    @patch(f'{PLUGIN_NAME}.modules.analiza_task.applyLayerStyle')
-    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.pushMessage')
+    @patch(f'{PLUGIN_NAME}.modules.analiza_task.LayerUtils.applyLayerStyle')
+    @patch(f'{PLUGIN_NAME}.photovoltaics_LP_dialog.MessageUtils.pushMessage')
     def testAnalizaWykonanie(self, mock_push, mock_style):
         print("\n" + "=" * 50)
         print(f"\n [TEST] Analiza danych")

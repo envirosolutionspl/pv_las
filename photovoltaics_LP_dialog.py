@@ -28,7 +28,7 @@ import zipfile
 from pathlib import Path
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QFileDialog
+from qgis.PyQt.QtWidgets import QFileDialog, QApplication
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.utils import iface
 from qgis.core import (
@@ -46,11 +46,7 @@ from .modules.analiza_task import AnalizaTask
 from .modules.generuj_wydruk import WydrukGenerator
 from .modules.zapisz_xlsx import ZapiszXLSX
 from .modules.generuj_raport import GenerujRaport
-from .utils import (
-    openFile, pushMessageBoxCritical, 
-    pushMessage, pushLogInfo, applyLayerStyle,
-    getLayerByName, getResultLayers, pobierzNazweZWarstwy
-)
+from .utils import FileUtils, MessageUtils, LayerUtils
 
 from .constants import (
     WMTS_URL_TEMPLATE, MAPA_BAZOWA_LAYERS, CRS_EPSG, MAPA_BAZOWA_URL,
@@ -133,7 +129,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             self.mapa_bazowa.triggerRepaint()
 
         else:
-            pushMessageBoxCritical(self, "Nie udało się wczytać mapy bazowej", "Sprawdź połączenie z internetem!")
+            MessageUtils.pushMessageBoxCritical(self, "Nie udało się wczytać mapy bazowej", "Sprawdź połączenie z internetem!")
 
     def pobierzWarstwyPochodne(self):
         """Ładuje warstwy pochodne z folderu .zip do projektu).
@@ -163,10 +159,10 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             
             if self.drogi_lesne.isValid() and self.wydzielenia.isValid():
                     # dodanie stylu do warstwy z drogami leśnymi
-                    applyLayerStyle(self.drogi_lesne, INPUT_LAYERS['drogi_lesne']['layer_name'])
+                    LayerUtils.applyLayerStyle(self.drogi_lesne, INPUT_LAYERS['drogi_lesne']['layer_name'])
 
                     # dodanie stylu do warstwy z wydzieleniami leśnymi
-                    applyLayerStyle(self.wydzielenia, INPUT_LAYERS['wydzielenia']['layer_name'])
+                    LayerUtils.applyLayerStyle(self.wydzielenia, INPUT_LAYERS['wydzielenia']['layer_name'])
 
 
                     self.project.addMapLayers( [self.drogi_lesne, self.wydzielenia])
@@ -176,19 +172,19 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                     rect = QgsRectangle(ms.fullExtent()) 
                     iface.mapCanvas().setExtent(rect) # ustawaianie do zakresu warstwy wydzielenni warstwy dróg leśnych
                     iface.mapCanvas().refresh()
-                    pushMessage(self.iface, 'Załadowano warstwy pochodne')
+                    MessageUtils.pushMessage(self.iface, 'Załadowano warstwy pochodne')
                     self.pobierzWarstwyPochodneBtn.setEnabled(False)
                     self.wczytajBdot10kBtn.setEnabled(True)
                     self.resetujBtn.setEnabled(True)
 
                    
             else:
-                pushMessageBoxCritical(self, "Nie udało się wczytać warstw pochodnych", "Sprawdź poprawność danych!")
+                MessageUtils.pushMessageBoxCritical(self, "Nie udało się wczytać warstw pochodnych", "Sprawdź poprawność danych!")
                 self.resetuj()    
                     
         else:
                
-            pushMessageBoxCritical(self, "Nie wybrano danych", "Wybierz dane!")
+            MessageUtils.pushMessageBoxCritical(self, "Nie wybrano danych", "Wybierz dane!")
             
             
     def wczytajDaneBdot10k(self):
@@ -198,10 +194,10 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             features = [object for object in self.powiaty.getFeatures()]
             
             if not features:
-                pushWarning(self.iface, "Brak wybranych powiatów!")
+                MessageUtils.pushWarning(self.iface, "Brak wybranych powiatów!")
                 return
 
-            pushMessage(self.iface, 'Pobieranie danych BDOT10k')
+            MessageUtils.pushMessage(self.iface, 'Pobieranie danych BDOT10k')
             
             self.wczytajBdot10kBtn.setEnabled(False)
             self.resetujBtn.setEnabled(False)
@@ -218,7 +214,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             )
             
             QgsApplication.taskManager().addTask(self.bdot_task)
-            pushLogInfo('Uruchomiono zadanie (Task przypisany do self.bdot_task)')
+            MessageUtils.pushLogInfo('Uruchomiono zadanie (Task przypisany do self.bdot_task)')
         
     def analizaData(self):
         """
@@ -228,12 +224,11 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         self.resetujBtn.setEnabled(False)
         
         # Natychmiastowe wylaczenie przyciskow
-        from qgis.PyQt.QtWidgets import QApplication
         QApplication.processEvents()
         
-        pushMessage(self.iface, 'Trwa analiza')
+        MessageUtils.pushMessage(self.iface, 'Analiza danych')
         self.analiza_task = AnalizaTask( 
-                description='Trwa analiza',
+                description='Analiza danych',
                 wydzielenia_opisy = self.wydzielenia_opisy,
                 wydzielenia = self.wydzielenia,
                 oddzialy = self.oddzialy, 
@@ -248,7 +243,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                 parent=self
             )
                 
-        from qgis.core import QgsApplication
+        
         QgsApplication.taskManager().addTask(self.analiza_task)
 
     def zapiszWarstwy(self):
@@ -262,13 +257,13 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         if len(self.save_layer_path[0]) > 0:
                
             try:
-                layers = getResultLayers(self.project)
+                layers = LayerUtils.getResultLayers(self.project)
                 wyznaczone_obszary = layers['obszary']
                 linie = layers['linie']
                 drogi = layers['drogi']
 
                 if not wyznaczone_obszary or not linie or not drogi:
-                    pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę!")
+                    MessageUtils.pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę!")
                     return
 
                 features_obszary = [feature for feature in wyznaczone_obszary.getFeatures()]
@@ -286,11 +281,11 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
                 path_drogi = os.path.join(os.path.dirname(path), FILENAME_LAYER_DROGI)
                 self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, NAME_LAYER_DROGI, features_drogi)      
 
-                pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
+                MessageUtils.pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
                 folder_name = os.path.dirname(path)
-                openFile(folder_name)
+                FileUtils.openFile(folder_name)
             except:
-                pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
+                MessageUtils.pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
 
     def tworzWarstwy(self,path, typ_geom, fields, name, features):
         """
@@ -310,7 +305,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             writer = QgsVectorFileWriter(
                 self.save_layer_path[0], ENCODINGS['UTF8'], fields,  typ_geom, crs, DRIVER_SHAPEFILE)
         if writer.hasError() != QgsVectorFileWriter.NoError:
-            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
+            MessageUtils.pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
         else:
             del writer
             layer = QgsVectorLayer(
@@ -323,23 +318,23 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         Generuje raport i zapisuje go jako plik excela.
         """
 
-        layers = getResultLayers(self.project)
+        layers = LayerUtils.getResultLayers(self.project)
         obszary = layers.get('obszary')
         linie = layers.get('linie')
         drogi = layers.get('drogi')
 
         if not obszary or not linie or not drogi:
-            pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę, aby wygenerować warstwy wynikowe!")
+            MessageUtils.pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę, aby wygenerować warstwy wynikowe!")
             return
 
         attr_nadl = LAYOUT_CONFIG['TITLE']['ATTR_NAME']
-        nazwa_nadl = pobierzNazweZWarstwy(self.nadlesnictwo, attr_nadl, self.iface)
+        nazwa_nadl = LayerUtils.getNameFromLayer(self.nadlesnictwo, attr_nadl, self.iface)
 
         try:
             nazwa_pliku = ZapiszXLSX().zapiszExcel()
         except Exception as e:
-            pushLogInfo(f"Błąd podczas wybierania ścieżki zapisu: {e}")
-            pushMessageBoxCritical(self, "Błąd", "Nie udało się określić ścieżki zapisu pliku.")
+            MessageUtils.pushLogInfo(f"Błąd podczas wybierania ścieżki zapisu: {e}")
+            MessageUtils.pushMessageBoxCritical(self, "Błąd", "Nie udało się określić ścieżki zapisu pliku.")
             return
 
         if not nazwa_pliku:
@@ -349,17 +344,17 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
             generuj_raport = GenerujRaport()
             generuj_raport.tworzTabele(nazwa_pliku, obszary, drogi, linie, nazwa_nadl)
             
-            pushMessage(self.iface, 'Generowanie raportu zakończone sukcesem!')
+            MessageUtils.pushMessage(self.iface, 'Generowanie raportu zakończone sukcesem!')
             
             folder_name = os.path.dirname(nazwa_pliku)
             if os.path.exists(folder_name):
-                openFile(folder_name)
+                FileUtils.openFile(folder_name)
                 
         except PermissionError:
-            pushMessageBoxCritical(self, "Błąd uprawnień", "Nie można zapisać pliku. Zamknij raport, jeśli jest otwarty w innym programie i spróbuj ponownie.")
+            MessageUtils.pushMessageBoxCritical(self, "Błąd uprawnień", "Nie można zapisać pliku. Zamknij raport, jeśli jest otwarty w innym programie i spróbuj ponownie.")
         except Exception as e:
-            pushLogInfo(f"Błąd podczas generowania raportu: {e}")
-            pushMessageBoxCritical(self, "Błąd generowania", f"Wystąpił nieoczekiwany problem: {str(e)}")
+            MessageUtils.pushLogInfo(f"Błąd podczas generowania raportu: {e}")
+            MessageUtils.pushMessageBoxCritical(self, "Błąd generowania", f"Wystąpił nieoczekiwany problem: {str(e)}")
 
     def generujWydruk(self):
         """
@@ -370,8 +365,8 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if sciezka_pliku:
             folder = os.path.dirname(sciezka_pliku)
-            pushMessage(self.iface, f"Pomyślnie zapisano: {os.path.basename(sciezka_pliku)}")
-            openFile(folder)    
+            MessageUtils.pushMessage(self.iface, f"Pomyślnie zapisano: {os.path.basename(sciezka_pliku)}")
+            FileUtils.openFile(folder)    
 
     def resetuj(self):
         """
@@ -395,6 +390,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         self.zapisBtn.setEnabled(False)
         self.raportBtn.setEnabled(False)
         self.wydrukBtn.setEnabled(False)
+        MessageUtils.pushMessage(self.iface, "Dane zostały zresetowane")
         
     def zamknij(self):
         """
@@ -407,16 +403,10 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         Otwiera instrukcję obsługi wtyczki w pdf
         """
         try:
-            filepath = Path(__file__).parent / "Instrukcja.pdf"
+            filepath = Path(__file__).parent / "docs" / "Instrukcja.pdf"
             os.startfile(filepath)
-
-        except:
-            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z otwarciem pliku pdf")
-
-
-
-
-            pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z otwarciem pliku pdf")
+        except Exception:
+            MessageUtils.pushMessageBoxCritical(self, "Błąd", "Nie można otworzyć instrukcji obsługi (plik docs/Instrukcja.pdf).")
 
 
 

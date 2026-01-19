@@ -18,7 +18,7 @@ from ..constants import (
     LAYER_NAME_BDOT10K_DROGI, LAYER_NAME_BDOT10K_LINIE, CRS_EPSG,
     PROVIDERS
 )
-from ..utils import pushLogInfo, pushMessage, pushWarning, applyLayerStyle
+from ..utils import LayerUtils, MessageUtils
 
 class PobierzBdotTask(QgsTask):
 
@@ -32,7 +32,7 @@ class PobierzBdotTask(QgsTask):
         self.features = features 
         self.iface = iface
         
-        # UI Buttons
+        # Przyciski UI
         self.wczytajBdot10kBtn = wczytajBdot10kBtn
         self.resetujBtn = resetujBtn
         self.analizaBtn = analizaBtn
@@ -43,7 +43,7 @@ class PobierzBdotTask(QgsTask):
 
     def run(self):
         """Logika działająca w tle."""
-        pushLogInfo(f'Start PobierzBdotTask. Temp: {self.temp_dir_path}')
+        MessageUtils.pushLogInfo(f'Start PobierzBdotTask. Temp: {self.temp_dir_path}')
         
         # Pobieranie i wypakowywanie plików
         drogi_files, linie_files = self._downloadAndExtractAll()
@@ -66,18 +66,31 @@ class PobierzBdotTask(QgsTask):
             self._loadAndStyleLayer(self.output_drogi_path, LAYER_NAME_BDOT10K_DROGI)
             self._loadAndStyleLayer(self.output_linie_path, LAYER_NAME_BDOT10K_LINIE)
             
-            pushMessage(self.iface, "Pobrano i wczytano dane BDOT10k.")
-        else:
-            pushWarning(self.iface, "Nie udało się pobrać danych.")
+            # Walidacja wczytanych warstw
+            drogi_layer = LayerUtils.getLayerByName(LAYER_NAME_BDOT10K_DROGI, self.project)
+            linie_layer = LayerUtils.getLayerByName(LAYER_NAME_BDOT10K_LINIE, self.project)
+            
+            valid_drogi = drogi_layer is not None and drogi_layer.isValid() and drogi_layer.featureCount() > 0
+            valid_linie = linie_layer is not None and linie_layer.isValid() and linie_layer.featureCount() > 0
+            
+            if not valid_drogi or not valid_linie:
+                MessageUtils.pushMessage(self.iface, "Błąd: Nie pobrano poprawnie danych BDOT10k lub dane dla tego obszaru są puste. Spróbuj pobrać ponownie.")
+                self.analizaBtn.setEnabled(False)
+                self.wczytajBdot10kBtn.setEnabled(True)
+                self.resetujBtn.setEnabled(True)
+                return
 
-        # Przywracanie stanu UI
-        self.analizaBtn.setEnabled(result)
-        self.resetujBtn.setEnabled(result)
-        self.wczytajBdot10kBtn.setEnabled(not result)
+            MessageUtils.pushMessage(self.iface, "Pobrano i wczytano dane BDOT10k.")
+            self.analizaBtn.setEnabled(True)
+            self.resetujBtn.setEnabled(True)
+            self.wczytajBdot10kBtn.setEnabled(False)
+        else:
+            MessageUtils.pushWarning(self.iface, "Nie udało się pobrać danych.")
+            self.analizaBtn.setEnabled(False)
+            self.resetujBtn.setEnabled(True)
+            self.wczytajBdot10kBtn.setEnabled(True)
 
     # --- FUNKCJE POMOCNICZE ---
-
-    # -- Funkcje pomocnicze do run --
 
     def _downloadAndExtractAll(self) -> Tuple[List[str], List[str]]:
         """Pobiera ZIPy dla wszystkich powiatów i zwraca listy ścieżek do plików SHP."""
@@ -108,7 +121,7 @@ class PobierzBdotTask(QgsTask):
         reply = request.reply()
         
         if reply.error() != QNetworkReply.NetworkError.NoError:
-            pushLogInfo(f"Błąd sieci ({url}): {reply.errorString()}")
+            MessageUtils.pushLogInfo(f"Błąd sieci ({url}): {reply.errorString()}")
             return None
         return reply.content()
 
@@ -127,7 +140,7 @@ class PobierzBdotTask(QgsTask):
                     elif file.endswith(BDOT_FILE_SUFFIX_LINIE):
                         l_list.append(full_path)
         except Exception as e:
-            pushLogInfo(f"Błąd wypakowywania: {e}")
+            MessageUtils.pushLogInfo(f"Błąd wypakowywania: {e}")
             
         return d_list, l_list
 
@@ -143,7 +156,7 @@ class PobierzBdotTask(QgsTask):
             processing.run("native:mergevectorlayers", params)
             return out_path if os.path.exists(out_path) else None
         except Exception as e:
-            pushLogInfo(f"Błąd Merge ({output_filename}): {e}")
+            MessageUtils.pushLogInfo(f"Błąd Merge ({output_filename}): {e}")
             return None
 
     # -- Funkcje pomocnicze do finished --
@@ -155,8 +168,8 @@ class PobierzBdotTask(QgsTask):
 
         vlayer = QgsVectorLayer(path, layer_name, PROVIDERS['OGR'])
         if vlayer.isValid():
-            applyLayerStyle(vlayer, layer_name)
+            LayerUtils.applyLayerStyle(vlayer, layer_name)
             self.project.addMapLayer(vlayer)
-            pushLogInfo(f"Poprawnie wczytano warstwę: {layer_name}")
+            MessageUtils.pushLogInfo(f"Poprawnie wczytano warstwę: {layer_name}")
         else:
-            pushLogInfo(f"Błąd walidacji warstwy: {layer_name}")
+            MessageUtils.pushLogInfo(f"Błąd walidacji warstwy: {layer_name}")
