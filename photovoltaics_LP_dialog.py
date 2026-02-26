@@ -23,36 +23,52 @@
 """
 
 import os
-from pathlib import Path
-
-from qgis.PyQt import uic
-from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
-from qgis.core import *
-from qgis.utils import iface
-from qgis.PyQt.QtGui import QColor, QFont
-
-
 import tempfile
 import zipfile
+from pathlib import Path
+from qgis.PyQt import uic
+from qgis.PyQt import QtWidgets
+from qgis.PyQt.QtWidgets import QFileDialog, QApplication
+from qgis.PyQt.QtGui import QColor, QFont
+from qgis.utils import iface
+from qgis.core import (
+    Qgis, QgsRasterLayer, QgsProject, QgsVectorLayer,
+    QgsMapSettings, QgsRectangle,
+    QgsApplication, QgsWkbTypes, QgsCoordinateReferenceSystem,
+    QgsVectorFileWriter, QgsPrintLayout, QgsLayoutItemMap, QgsLayoutPoint,
+    QgsUnitTypes, QgsLayoutSize, QgsLayoutItemPicture, QgsLayoutItemLabel,
+    QgsLayoutItemLegend, QgsLayerTree, QgsLayoutItemScaleBar,
+    QgsScaleBarSettings, QgsLayoutExporter
+) 
 
-from .daneBdotkTask import PobierzBdotTask
-from .analizaTask import AnalizaTask
+from .modules.dane_bdot_task import PobierzBdotTask
+from .modules.analiza_task import AnalizaTask
+from .modules.generuj_wydruk import WydrukGenerator
+from .modules.zapisz_xlsx import ZapiszXLSX
+from .modules.generuj_raport import GenerujRaport
+from .utils import FileUtils, MessageUtils, LayerUtils
 
-from .zapisz_xlsx import ZapiszXLSX
-from .generuj_raport import GenerujRaport
-from . import utils
+from .constants import (
+    WMTS_URL_TEMPLATE, MAPA_BAZOWA_LAYERS, CRS_EPSG, MAPA_BAZOWA_URL,
+    MAPA_BAZOWA_LAYER_NAME, INPUT_LAYERS, TEMP_DIR_PREFIX,
+    LAYOUT_CONFIG, NAME_LAYER_OBSZARY,
+    NAME_LAYER_LINIE, NAME_LAYER_DROGI,
+    ENCODINGS, PROVIDERS,
+    DRIVER_SHAPEFILE, FILE_FILTERS,
+    FILENAME_DEFAULT_LAYERS_DIR, FILENAME_LAYER_LINIE, FILENAME_LAYER_DROGI
+)
 
 
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
+# To wczytuje plik .ui, dzięki czemu PyQt uzupełni wtyczkę elementami z Qt Designera.
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'photovoltaics_LP_dialog_base.ui'))
 
 
 class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
-        """Constructor."""
+        """Konstruktor."""
         super(PhotovoltaicsLPDialog, self).__init__(parent)
+        self.project = QgsProject.instance()
         # Set up the user interface from Designer through FORM_CLASS.
         # After self.setupUi() you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
@@ -60,7 +76,7 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
 
-        self.label_60.setMargin(4)
+        self.iface = iface
 
         self.wydzielenia = None
         self.wydzielenia_opisy = None
@@ -78,392 +94,287 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         self.linie_list = []
         self.save_layer_path = ""
 
-    
+        # Tworzenie katalogu tymczasowego
+        self.work_dir = tempfile.TemporaryDirectory(prefix=TEMP_DIR_PREFIX)
+        self.temp_path = self.work_dir.name
 
-        self.pobierzWarstwyPochodneBtn.clicked.connect(self.pobierz_warstwy_pochodne)
-        self.wczytajBdot10kBtn.clicked.connect(self.wczytaj_dane_bdot10k)
-        self.analizaBtn.clicked.connect(self.analiza_data)
-        self.raportBtn.clicked.connect(self.generuj_raport)
-        self.wydrukBtn.clicked.connect(self.generuj_wydruk)
+        self.pobierzWarstwyPochodneBtn.clicked.connect(self.pobierzWarstwyPochodne)
+        self.wczytajBdot10kBtn.clicked.connect(self.wczytajDaneBdot10k)
+        self.analizaBtn.clicked.connect(self.analizaData)
+        self.raportBtn.clicked.connect(self.generujRaport)
+        self.wydrukBtn.clicked.connect(self.generujWydruk)
         self.resetujBtn.clicked.connect(self.resetuj)
         self.zamknijBtn.clicked.connect(self.zamknij)
-        self.zapisBtn.clicked.connect(self.zapisz_warstwy)
+        self.zapisBtn.clicked.connect(self.zapiszWarstwy)
         self.helpBtn.clicked.connect(self.help)
 
 
-    def dodaj_mape_bazowa(self):
-        """dodaje mapę bazową
+    def dodajMapeBazowa(self):
+        """
+        dodaje mapę bazową
         """
    
-        wmts_url = (
-            "contextualWMSLegend=0&crs={}&dpiMode=0&"
-            "featureCount=10&format={}&layers={}&"
-            "styles=default&tileMatrixSet={}&url={}".format(
-                'EPSG:2180',
-                "image/jpeg",
-                "MAPA TOPOGRAFICZNA",
-                'EPSG:2180',
-                'https://mapy.geoportal.gov.pl/wss/service/WMTS/guest/wmts/TOPO?service%3DWMTS%26request%3DgetCapabilities'
-            )
+        wmts_url = WMTS_URL_TEMPLATE.format(
+            layers=MAPA_BAZOWA_LAYERS,
+            crs=f"EPSG:{CRS_EPSG}",
+            url=MAPA_BAZOWA_URL
         )
         
-        self.mapa_bazowa = QgsRasterLayer(wmts_url, "Rastrowa Mapa Topograficzna Polski", 'wms')
+        self.mapa_bazowa = QgsRasterLayer(wmts_url, MAPA_BAZOWA_LAYER_NAME, PROVIDERS['WMS'])
         if self.mapa_bazowa.isValid():
-            root = QgsProject.instance().layerTreeRoot()
-            QgsProject.instance().addMapLayer(self.mapa_bazowa, False)
+            root = self.project.layerTreeRoot()
+            self.project.addMapLayer(self.mapa_bazowa, False)
             root.insertLayer(len(root.children()), self.mapa_bazowa)
             self.mapa_bazowa.renderer().setOpacity(0.2)
             self.mapa_bazowa.triggerRepaint()
 
         else:
-         
-            msg = QMessageBox.critical(
-                    None, "Nie udało się wczytać mapy bazowej", "Sprawdź połączenie z internetem!")
+            MessageUtils.pushMessageBoxCritical(self, "Nie udało się wczytać mapy bazowej", "Sprawdź połączenie z internetem!")
 
-    def pobierz_warstwy_pochodne(self):
+    def pobierzWarstwyPochodne(self):
         """Ładuje warstwy pochodne z folderu .zip do projektu).
         """
-        dialog = QFileDialog()
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-        self.selected_data = dialog.getOpenFileName(
-            None, "Wybierz archiwum", "", "Archiwum ZIP (*.zip)")
+        self.selected_data = QFileDialog.getOpenFileName(
+            None, "Wybierz archiwum", "", FILE_FILTERS['ZIP'])
 
         if self.selected_data[0]:
             self.pobierzWarstwyPochodneBtn.setEnabled(False)
             zf = zipfile.ZipFile(self.selected_data[0])
-            tempdir= tempfile.TemporaryDirectory()
-            zf.extractall(tempdir.name)
-            powiaty_path = tempdir.name + '\\'+ 'pow_pol.shp'
-            wydzielenia_path = tempdir.name + '\\'+ 'wydz_pol.shp'
-            drogi_lesne_path = tempdir.name + '\\'+ 'kom_lin.shp'
-            oddzialy_path = tempdir.name + '\\'+ 'oddz_pol.shp'
-            wydzielenia_opisy_path = tempdir.name + '\\'+ 'ow_pkt.shp'
-            nadlesnictwo_path = tempdir.name + '\\'+ 'nadl_pol.shp'
+            zf.extractall(self.temp_path)
+            powiaty_path = os.path.join(self.temp_path, INPUT_LAYERS['powiaty']['filename'])
+            wydzielenia_path = os.path.join(self.temp_path, INPUT_LAYERS['wydzielenia']['filename'])
+            drogi_lesne_path = os.path.join(self.temp_path, INPUT_LAYERS['drogi_lesne']['filename'])
+            oddzialy_path = os.path.join(self.temp_path, INPUT_LAYERS['oddzialy']['filename'])
+            wydzielenia_opisy_path = os.path.join(self.temp_path, INPUT_LAYERS['wydzielenia_opisy']['filename'])
+            nadlesnictwo_path = os.path.join(self.temp_path, INPUT_LAYERS['nadlesnictwo']['filename'])
 
-            self.oddzialy= QgsVectorLayer(oddzialy_path, "oddz_pol", "ogr")
-            self.powiaty = QgsVectorLayer(powiaty_path, "pow_pol", "ogr")
-            self.wydzielenia = QgsVectorLayer(wydzielenia_path, "wydz_pol", "ogr")
-            self.drogi_lesne = QgsVectorLayer(drogi_lesne_path, "kom_lin", "ogr")
-            self.wydzielenia_opisy = QgsVectorLayer( wydzielenia_opisy_path, "ow_pkt", "ogr")
-            self.nadlesnictwo = QgsVectorLayer( nadlesnictwo_path, "nadl", "ogr")
-            self.nadlesnictwo.dataProvider().setEncoding(u'windows-1250')
+            self.oddzialy= QgsVectorLayer(oddzialy_path, INPUT_LAYERS['oddzialy']['layer_name'], PROVIDERS['OGR'])
+            self.powiaty = QgsVectorLayer(powiaty_path, INPUT_LAYERS['powiaty']['layer_name'], PROVIDERS['OGR'])
+            self.wydzielenia = QgsVectorLayer(wydzielenia_path, INPUT_LAYERS['wydzielenia']['layer_name'], PROVIDERS['OGR'])
+            self.drogi_lesne = QgsVectorLayer(drogi_lesne_path, INPUT_LAYERS['drogi_lesne']['layer_name'], PROVIDERS['OGR'])
+            self.wydzielenia_opisy = QgsVectorLayer( wydzielenia_opisy_path, INPUT_LAYERS['wydzielenia_opisy']['layer_name'], PROVIDERS['OGR'])
+            self.nadlesnictwo = QgsVectorLayer( nadlesnictwo_path, INPUT_LAYERS['nadlesnictwo']['layer_name'], PROVIDERS['OGR'])
+            self.nadlesnictwo.dataProvider().setEncoding(ENCODINGS['WIN1250'])
            
             
             if self.drogi_lesne.isValid() and self.wydzielenia.isValid():
                     # dodanie stylu do warstwy z drogami leśnymi
-                    symbol =  QgsLineSymbol.createSimple(
-                    {'color': 'gray', 'outline_color' : 'gray',  'outline_style': 'solid',
-                    'outline_width': '0.26'})
-                    renderer = QgsSingleSymbolRenderer(symbol)
-                    self.drogi_lesne.setRenderer(renderer)
+                    LayerUtils.applyLayerStyle(self.drogi_lesne, INPUT_LAYERS['drogi_lesne']['layer_name'])
 
                     # dodanie stylu do warstwy z wydzieleniami leśnymi
-                    symbol =  QgsFillSymbol.createSimple(
-                    {'color': '#005023', 'outline_color' : 'black',  'outline_style':'solid',
-                    'outline_width': '0.26'})
-                    renderer = QgsSingleSymbolRenderer(symbol)
-                    self.wydzielenia.setRenderer(renderer)
+                    LayerUtils.applyLayerStyle(self.wydzielenia, INPUT_LAYERS['wydzielenia']['layer_name'])
 
 
-                    QgsProject.instance().addMapLayers( [self.drogi_lesne, self.wydzielenia])
-                    self.dodaj_mape_bazowa() #dodawanie warstwy bazowej
+                    self.project.addMapLayers( [self.drogi_lesne, self.wydzielenia])
+                    self.dodajMapeBazowa() #dodawanie warstwy bazowej
                     ms = QgsMapSettings()
                     ms.setLayers([self.drogi_lesne, self.wydzielenia])  
                     rect = QgsRectangle(ms.fullExtent()) 
                     iface.mapCanvas().setExtent(rect) # ustawaianie do zakresu warstwy wydzielenni warstwy dróg leśnych
                     iface.mapCanvas().refresh()
-                    QMessageBox.information(
-                            None, "Sukces", "Ładowanie warstw pochodnych zakonczone sukcesem!")
+                    MessageUtils.pushMessage(self.iface, 'Załadowano warstwy pochodne')
                     self.pobierzWarstwyPochodneBtn.setEnabled(False)
                     self.wczytajBdot10kBtn.setEnabled(True)
                     self.resetujBtn.setEnabled(True)
 
                    
             else:
-                msg = QMessageBox.critical(None, "Nie udało się wczytać warstw pochodnych", "Sprawdź poprawność danych!")
+                MessageUtils.pushMessageBoxCritical(self, "Nie udało się wczytać warstw pochodnych", "Sprawdź poprawność danych!")
                 self.resetuj()    
                     
         else:
                
-            msg = QMessageBox.critical(
-            None, "Nie wybrano danych", "Wybierz dane!")
+            MessageUtils.pushMessageBoxCritical(self, "Nie wybrano danych", "Wybierz dane!")
             
             
-    def wczytaj_dane_bdot10k(self):
-        """ściąga dane_bdot10k z internetu do projektu.
-        """
-       
-        features = [obiect for obiect in self.powiaty.getFeatures()]
-        iface.messageBar().pushMessage("Informacja",
-                                            f'Pobieranie danych BDOT10k',
-                                            level=Qgis.Info)
-        task = PobierzBdotTask(
-            description='Pobieranie danych',
-            drogi_layer = self.drogi_bdot10k,
-            linie_layer =self.linie_bdot10k,
-            features = features, 
-            drogi_list =self.drogi_list,
-            linie_list = self.linie_list,
-            iface= iface,
-            wczytajBdot10kBtn = self.wczytajBdot10kBtn,
-            analizaBtn = self.analizaBtn,
-            resetujBtn = self.resetujBtn
+    def wczytajDaneBdot10k(self):
+            """
+            Ściąga dane_bdot10k z internetu do projektu.
+            """
+            features = [object for object in self.powiaty.getFeatures()]
+            
+            if not features:
+                MessageUtils.pushWarning(self.iface, "Brak wybranych powiatów!")
+                return
 
-        )
-        QgsApplication.taskManager().addTask(task)
-        QgsMessageLog.logMessage('runtask')
+            MessageUtils.pushMessage(self.iface, 'Pobieranie danych BDOT10k')
+            
+            self.wczytajBdot10kBtn.setEnabled(False)
+            self.resetujBtn.setEnabled(False)
+            
+            self.bdot_task = PobierzBdotTask(
+                description='Pobieranie danych BDOT',
+                features=features, 
+                iface=self.iface,
+                temp_path=self.temp_path,
+                wczytajBdot10kBtn=self.wczytajBdot10kBtn,
+                analizaBtn=self.analizaBtn,
+                resetujBtn=self.resetujBtn,
+                parent=self
+            )
+            
+            QgsApplication.taskManager().addTask(self.bdot_task)
+            MessageUtils.pushLogInfo('Uruchomiono zadanie (Task przypisany do self.bdot_task)')
         
-        
-    def analiza_data(self):
-        """Wykonuje analizę na potrzeby farm fotowoltalicznych.
+    def analizaData(self):
         """
-        iface.messageBar().pushMessage("Informacja",
-                                            f'Trwa analiza',
-                                            level=Qgis.Info)
-        task = AnalizaTask(
-            description='Trwa analiza',
-            wydzielenia_opisy = self.wydzielenia_opisy,
-            wydzielenia =self.wydzielenia,
-            oddzialy = self.oddzialy, 
-            drogi_lesne =self.drogi_lesne,
-            mapa_bazowa = self.mapa_bazowa,
-            iface= iface,
-            analizaBtn = self.analizaBtn,
-            zapisBtn = self.zapisBtn,
-            raportBtn=self.raportBtn,
-            wydrukBtn=self.wydrukBtn,
-            resetujBtn = self.resetujBtn
+        Wykonuje analizę na potrzeby farm fotowoltalicznych.
+        """
+        self.analizaBtn.setEnabled(False)
+        self.resetujBtn.setEnabled(False)
+        
+        # Natychmiastowe wylaczenie przyciskow
+        QApplication.processEvents()
+        
+        MessageUtils.pushMessage(self.iface, 'Analiza danych')
+        self.analiza_task = AnalizaTask( 
+                description='Analiza danych',
+                wydzielenia_opisy = self.wydzielenia_opisy,
+                wydzielenia = self.wydzielenia,
+                oddzialy = self.oddzialy, 
+                drogi_lesne = self.drogi_lesne,
+                mapa_bazowa = self.mapa_bazowa,
+                iface = self.iface,
+                analizaBtn = self.analizaBtn,
+                zapisBtn = self.zapisBtn,
+                raportBtn=self.raportBtn,
+                wydrukBtn=self.wydrukBtn,
+                resetujBtn = self.resetujBtn,
+                parent=self
+            )
+                
+        
+        QgsApplication.taskManager().addTask(self.analiza_task)
 
-        )
-        QgsApplication.taskManager().addTask(task)
-        QgsMessageLog.logMessage('runtask')     
-
-    def zapisz_warstwy(self):
-        """Zapisuje warstwy wyznaczonych obszarów, najbliższych dróg i najbiższych linii energetycznych do wybranej lokalizacji
+    def zapiszWarstwy(self):
+        """
+        Zapisuje warstwy wyznaczonych obszarów, najbliższych dróg i 
+        najbiższych linii energetycznych do wybranej lokalizacji
         """
     
         self.save_layer_path = QFileDialog.getSaveFileName(
-                None, "Wybierz lokalizację", 'wyznaczone_obszary', '*.shp')
+                None, "Wybierz lokalizację", FILENAME_DEFAULT_LAYERS_DIR, FILE_FILTERS['SHP'])
         if len(self.save_layer_path[0]) > 0:
                
             try:
-                wyznaczone_obszary = QgsProject.instance().mapLayersByName('Wyznaczone obszary')[0]
+                layers = LayerUtils.getResultLayers(self.project)
+                wyznaczone_obszary = layers['obszary']
+                linie = layers['linie']
+                drogi = layers['drogi']
+
+                if not wyznaczone_obszary or not linie or not drogi:
+                    MessageUtils.pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę!")
+                    return
+
                 features_obszary = [feature for feature in wyznaczone_obszary.getFeatures()]
                 fields_obszary = wyznaczone_obszary.fields()
                 path=self.save_layer_path[0]
-                self.tworz_warstwy(path, QgsWkbTypes.Polygon, fields_obszary, 'Wyznaczone_obszary', features_obszary)
+                self.tworzWarstwy(path, QgsWkbTypes.Polygon, fields_obszary, NAME_LAYER_OBSZARY, features_obszary)
 
-                linie = QgsProject.instance().mapLayersByName('Najbliższe linie energetyczne')[0]
                 features_linie = [feature for feature in linie.getFeatures()]
                 fields_linie = linie.fields()
-                path_linie = ('/').join(path.split('/')[:-1]) + '//'+ 'najblizsze_linie_energetyczne.shp'
-                self.tworz_warstwy(path_linie, QgsWkbTypes.LineString, fields_linie, 'Najbliższe_linie_energetyczne', features_linie)
+                path_linie = os.path.join(os.path.dirname(path), FILENAME_LAYER_LINIE)
+                self.tworzWarstwy(path_linie, QgsWkbTypes.LineString, fields_linie, NAME_LAYER_LINIE, features_linie)
 
-                drogi = QgsProject.instance().mapLayersByName('Najbliższe drogi')[0]
                 features_drogi = [feature for feature in drogi.getFeatures()]
                 fields_drogi = drogi.fields()
-                path_drogi = ('/').join(path.split('/')[:-1]) + '//'+ 'najblizsze_drogi.shp'
-                self.tworz_warstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, 'Najbliższe_drogi', features_drogi)      
+                path_drogi = os.path.join(os.path.dirname(path), FILENAME_LAYER_DROGI)
+                self.tworzWarstwy(path_drogi, QgsWkbTypes.LineString, fields_drogi, NAME_LAYER_DROGI, features_drogi)      
 
-                QMessageBox.information(
-                        None, "Sukces", "Zapisywanie warstw zakonczone sukcesem!")
-                folder_name = ('/').join(path.split('/')[:-1])
-                utils.openFile(folder_name)
+                MessageUtils.pushMessage(self.iface, "Zapisywanie warstw zakonczone sukcesem!")
+                folder_name = os.path.dirname(path)
+                FileUtils.openFile(folder_name)
             except:
-                msg = QMessageBox.critical(
-                    None, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
+                MessageUtils.pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstw!")
 
-
-    def tworz_warstwy(self,path, typ_geom, fields, name, features):
-        """Tworzy warstwy wyznaczonych obszarów, najbliższych dróg i najbiższych linii energetycznych.
+    def tworzWarstwy(self,path, typ_geom, fields, name, features):
+        """
+        Tworzy warstwy wyznaczonych obszarów, najbliższych dróg i 
+        najbiższych linii energetycznych.
         """
 
-        crs = QgsCoordinateReferenceSystem('EPSG:2180')
-        transform_context = QgsProject.instance().transformContext()
+        crs = QgsCoordinateReferenceSystem(f"EPSG:{CRS_EPSG}")
+        transform_context = self.project.transformContext()
         save_options = QgsVectorFileWriter.SaveVectorOptions()
-        save_options.driverName = "ESRI Shapefile"
-        save_options.fileEncoding = "UTF-8"
+        save_options.driverName = DRIVER_SHAPEFILE
+        save_options.fileEncoding = ENCODINGS['UTF8']
         if Qgis.QGIS_VERSION_INT >= 31030:
             writer = QgsVectorFileWriter.create(
                 path, fields, typ_geom, crs, transform_context, save_options)
         else:
             writer = QgsVectorFileWriter(
-                self.save_layer_path[0], 'UTF-8', fields,  typ_geom, crs, "ESRI Shapefile")
+                self.save_layer_path[0], ENCODINGS['UTF8'], fields,  typ_geom, crs, DRIVER_SHAPEFILE)
         if writer.hasError() != QgsVectorFileWriter.NoError:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
+            MessageUtils.pushMessageBoxCritical(self, "Spróbuj jeszcze raz", "Problem z zapisem warstwy!")
         else:
             del writer
             layer = QgsVectorLayer(
-                path, name, 'ogr')
-
+                path, name, PROVIDERS['OGR'])
             prov = layer.dataProvider()
-            prov.addFeatures(features)        
-
-    def generuj_raport(self):
-        """Generuje raport i zapisuje go jako plik excela w wybranej lokalizacji. W razie problemu pojawia się wiadomość.
-        """
-        try:
-            nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
-
-            self.linie = QgsProject.instance().mapLayersByName('Najbliższe linie energetyczne')[0]
-
-            self.drogi = QgsProject.instance().mapLayersByName('Najbliższe drogi')[0]
-
-            self.obszary = QgsProject.instance().mapLayersByName('Wyznaczone obszary')[0]
-
-
-            nazwa_pliku = ZapiszXLSX().zapisz_xlsx()
-          
-            if nazwa_pliku:
-                generuj_raport = GenerujRaport()
-                generuj_raport.tworz_tabele(nazwa_pliku, self.obszary, self.drogi, self.linie, nazwa_nadlesnictwa[0])
-                QMessageBox.information(
-                    None, "Sukces", "Generowanie raportu zakonczone sukcesem!")
-                folder_name = ('/').join(nazwa_pliku.split('/')[:-1])
-                utils.openFile(folder_name)
-        except:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z wygenerowaniem raportu!")
-
-    def generuj_wydruk(self):
+            prov.addFeatures(features)
         
+    def generujRaport(self):
+        """
+        Generuje raport i zapisuje go jako plik excela.
+        """
+
+        layers = LayerUtils.getResultLayers(self.project)
+        obszary = layers.get('obszary')
+        linie = layers.get('linie')
+        drogi = layers.get('drogi')
+
+        if not obszary or not linie or not drogi:
+            MessageUtils.pushMessageBoxCritical(self, "Brak warstw", "Najpierw przeprowadź analizę, aby wygenerować warstwy wynikowe!")
+            return
+
+        attr_nadl = LAYOUT_CONFIG['TITLE']['ATTR_NAME']
+        nazwa_nadl = LayerUtils.getNameFromLayer(self.nadlesnictwo, attr_nadl, self.iface)
+
         try:
-            nazwa_nadlesnictwa = [feature[3] for feature in self.nadlesnictwo.getFeatures()]
-            self.linie = QgsProject.instance().mapLayersByName('Najbliższe linie energetyczne')[0]
-            self.drogi = QgsProject.instance().mapLayersByName('Najbliższe drogi')[0]
-            self.obszary = QgsProject.instance().mapLayersByName('Wyznaczone obszary')[0]
-            warstwy=[self.obszary, self.drogi, self.linie]
-            typy_obrazu = "jpg (*.jpg);;bitmap (*.bmp);;tiff (*.tiff);; pdf (*.pdf)"
-            opcje = QFileDialog.Options()
-            nazwa_pliku = QFileDialog.getSaveFileName(
-                    None, "Zapisz jako ...", "", filter=typy_obrazu, options=opcje)
+            nazwa_pliku = ZapiszXLSX().zapiszExcel()
+        except Exception as e:
+            MessageUtils.pushLogInfo(f"Błąd podczas wybierania ścieżki zapisu: {e}")
+            MessageUtils.pushMessageBoxCritical(self, "Błąd", "Nie udało się określić ścieżki zapisu pliku.")
+            return
+
+        if not nazwa_pliku:
+            return
+
+        try:
+            generuj_raport = GenerujRaport()
+            generuj_raport.tworzTabele(nazwa_pliku, obszary, drogi, linie, nazwa_nadl)
             
-            project = QgsProject.instance()
-            layout = QgsPrintLayout(project)
-            layout.initializeDefaults()
-            map = QgsLayoutItemMap(layout)
-            map.setRect(20, 20, 20, 20)
-            extent = QgsRectangle()
-            nadlesnictwo_geom = next(self.nadlesnictwo.getFeatures(), None)
-            if nadlesnictwo_geom:
-                extent = nadlesnictwo_geom.geometry().boundingBox()
-            extent.scale(1.6) 
-            ms = QgsMapSettings()
-            ms.setLayers(warstwy)  
-            ms.setExtent(extent)
-            map.setExtent(extent)
-            map.setBackgroundColor(QColor(255,255,255))
-            layout.addLayoutItem(map)
-            map.attemptMove(QgsLayoutPoint(20, 45, QgsUnitTypes.LayoutMillimeters))
-            map.attemptResize(QgsLayoutSize(
-                190, 126, QgsUnitTypes.LayoutMillimeters))
-            logoLP = QgsLayoutItemPicture(layout)
-            logoLP.setResizeMode(QgsLayoutItemPicture.Zoom)
-            logoLP.setMode(QgsLayoutItemPicture.FormatRaster)
-            logoLP.setPicturePath(':/plugins/photovoltaics_LP/icons/logoLP.png')
-
-            dim_image_original = [300, 300]
-            new_dim = [i * 0.6 for i in dim_image_original]
-            logoLP.attemptMove(QgsLayoutPoint(20, 10, QgsUnitTypes.LayoutMillimeters))
-            logoLP.attemptResize(QgsLayoutSize(*new_dim, QgsUnitTypes.LayoutPixels))
-            layout.addLayoutItem(logoLP)
-
-            logoEnv = QgsLayoutItemPicture(layout)
-            logoEnv.setResizeMode(QgsLayoutItemPicture.Zoom)
-            logoEnv.setMode(QgsLayoutItemPicture.FormatRaster)
-            logoEnv.setPicturePath(':/plugins/photovoltaics_LP/icons/logoPL.png')
-
-            dim_image_original = [1588, 401]
-            new_dim = [i * 0.4 for i in dim_image_original]
-            logoEnv.attemptMove(QgsLayoutPoint(215, 10, QgsUnitTypes.LayoutMillimeters))
-            logoEnv.attemptResize(QgsLayoutSize(*new_dim, QgsUnitTypes.LayoutPixels))
-            layout.addLayoutItem(logoEnv)
-
-            arrow = QgsLayoutItemPicture(layout)
-            arrow.setResizeMode(QgsLayoutItemPicture.Zoom)
-            arrow.setMode(QgsLayoutItemPicture.FormatRaster)
-            arrow.setPicturePath(':/plugins/photovoltaics_LP/icons/arrow.png')
-
-            dim_image_original = [949, 893]
-            new_dim = [i * 0.6 for i in dim_image_original]
-            arrow.attemptMove(QgsLayoutPoint(225, 45, QgsUnitTypes.LayoutMillimeters))
-            arrow.attemptResize(QgsLayoutSize(*new_dim, QgsUnitTypes.LayoutPixels))
-            layout.addLayoutItem(arrow)
+            MessageUtils.pushMessage(self.iface, 'Generowanie raportu zakończone sukcesem!')
             
-            title = QgsLayoutItemLabel(layout)
-            title.setText("Obszary wyznaczone na potrzeby farm fotowoltaicznych - Nadleśnictwo {}".format(nazwa_nadlesnictwa))
-            title.setFont(QFont('Arial', 13))
-            title.adjustSizeToText()
-            layout.addLayoutItem(title)
-            title.attemptMove(QgsLayoutPoint(
-                40, 15, QgsUnitTypes.LayoutMillimeters))
-            title.attemptResize(QgsLayoutSize(190, 10))
-            title.setFrameEnabled(False)
-
-            footer = QgsLayoutItemLabel(layout)
-            footer.setText("Wygenerowano przy użyciu wtyczki Fotowoltaika LP")
-            footer.setFont(QFont('Arial', 11))
-            layout.addLayoutItem(footer)
-            footer.attemptMove(QgsLayoutPoint(
-                100, 190, QgsUnitTypes.LayoutMillimeters))
-            footer.setFrameEnabled(False)
-
-            legend = QgsLayoutItemLegend(layout)
-            legend.setLinkedMap(map)
-            layerTree = QgsLayerTree()
-
-            for warstwa in warstwy:
-                layerTree.addLayer(warstwa)
-
-            legend.model().setRootGroup(layerTree)
-            layout.addLayoutItem(legend)
-            legend.attemptMove(QgsLayoutPoint(
-                215, 107, QgsUnitTypes.LayoutMillimeters))
-            scaleBar = QgsLayoutItemScaleBar(layout)
-            scaleBar.setStyle('Single Box')
-            scaleBar.setFont(QFont("Arial", 9))
-            scaleBar.applyDefaultSize(QgsUnitTypes.DistanceMeters)
-            scaleBar.setMapUnitsPerScaleBarUnit(1000.0)
-            scaleBar.setSegmentSizeMode(QgsScaleBarSettings.SegmentSizeFitWidth)
-            scaleBar.setMaximumBarWidth(70)
-            scaleBar.setNumberOfSegments(5)
-            scaleBar.setUnitsPerSegment(1*1000.0)
-            scaleBar.setUnitLabel("km")
-            scaleBar.setLinkedMap(map)
-            layout.addLayoutItem(scaleBar)
-            scaleBar.attemptMove(QgsLayoutPoint(
-                215, 161, QgsUnitTypes.LayoutMillimeters))
-          
-            if nazwa_pliku[0]:
-                if  nazwa_pliku[0].endswith('.pdf'):
-
-                    exporter = QgsLayoutExporter(layout)
-                    exporter.exportToPdf(
-                          nazwa_pliku[0],QgsLayoutExporter.PdfExportSettings())
-                    
-                    QMessageBox.information(
-                            None, "Sukces", "Zapisywanie dokumentu zakończone sukcesem!")
-                else:
-                    exporter = QgsLayoutExporter(layout)
-                    exporter.exportToImage(
-                            nazwa_pliku[0], QgsLayoutExporter.ImageExportSettings())
-                    QMessageBox.information(
-                            None, "Sukces", "Zapisywanie obrazu zakończone sukcesem!")
-                    
+            folder_name = os.path.dirname(nazwa_pliku)
+            if os.path.exists(folder_name):
+                FileUtils.openFile(folder_name)
                 
-                folder_name = ('/').join(nazwa_pliku[0].split('/')[:-1])
-                utils.openFile(folder_name)
-        except:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z zapisem dokumetu")
+        except PermissionError:
+            MessageUtils.pushMessageBoxCritical(self, "Błąd uprawnień", "Nie można zapisać pliku. Zamknij raport, jeśli jest otwarty w innym programie i spróbuj ponownie.")
+        except Exception as e:
+            MessageUtils.pushLogInfo(f"Błąd podczas generowania raportu: {e}")
+            MessageUtils.pushMessageBoxCritical(self, "Błąd generowania", f"Wystąpił nieoczekiwany problem: {str(e)}")
+
+    def generujWydruk(self):
+        """
+        Generuje wydruk i zapisuje go jako plik w wybranej lokalizacji.
+        """
+        generator = WydrukGenerator(self)
+        sciezka_pliku = generator.generuj()
+
+        if sciezka_pliku:
+            folder = os.path.dirname(sciezka_pliku)
+            MessageUtils.pushMessage(self.iface, f"Pomyślnie zapisano: {os.path.basename(sciezka_pliku)}")
+            FileUtils.openFile(folder)    
 
     def resetuj(self):
-        """resetuje dane
+        """
+        Resetuje dane
         """
         self.wydzielenia = None
         self.wydzielenia_opisy = None
-        self.drogi_esne = None
+        self.drogi_lesne = None
         self.powiaty = None
         self.obszary = None
         self.drogi = None
@@ -479,22 +390,23 @@ class PhotovoltaicsLPDialog(QtWidgets.QDialog, FORM_CLASS):
         self.zapisBtn.setEnabled(False)
         self.raportBtn.setEnabled(False)
         self.wydrukBtn.setEnabled(False)
+        MessageUtils.pushMessage(self.iface, "Dane zostały zresetowane")
         
     def zamknij(self):
-        """zamyka okno wtyczki
+        """
+        Zamyka okno wtyczki
         """
         self.close()
     
     def help(self):
-        """Otwiera instrukcję obsługi wtyczki w pdf
+        """
+        Otwiera instrukcję obsługi wtyczki w pdf
         """
         try:
-            filepath = Path(__file__).parent / "Instrukcja.pdf"
+            filepath = Path(__file__).parent / "docs" / "Instrukcja.pdf"
             os.startfile(filepath)
-
-        except:
-            msg = QMessageBox.critical(
-                None, "Spróbuj jeszcze raz", "Problem z otwarciem pliku pdf")
+        except Exception:
+            MessageUtils.pushMessageBoxCritical(self, "Błąd", "Nie można otworzyć instrukcji obsługi (plik docs/Instrukcja.pdf).")
 
 
 
