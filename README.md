@@ -69,6 +69,10 @@ W przypadku chęci przeanalizowania własnych danych należy pobrać warstwy poc
 
 ![przyklad_uzycia](docs/przyklad_uzycia.gif)
 
+## Kontakt
+
+Wtyczka została stworzona przez ****EnviroSolutions**. W razie pytań lub potrzeby wsparcia skontaktuj się z nami przez e-mail:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
+
 ## EN
 
 The plugin allows for the identification of suitable locations for photovoltaic power stations on land managed by the State Forests (PGL LP).
@@ -138,3 +142,7 @@ If you wish to analyze your own data, you must download the derived layers for a
 #### Usage Example
 
 ![example_usage](docs/przyklad_uzycia.gif)
+
+## Contact
+
+The plugin was developed by ****EnviroSolutions**. For questions or support, contact us at:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
