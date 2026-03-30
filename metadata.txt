@@ -22,8 +22,10 @@ repository=https://github.com/envirosolutionspl/pv_las
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-changelog=Wersja 1.1.1
-  * Dodanie informacji o qgisMaximumVersion
+changelog=Wersja 1.1.2
+  * Zamiana przekierowania homepage, zmiana adresu email na aktualny 
+#   Wersja 1.1.1
+#   * Dodanie informacji o qgisMaximumVersion
 #   Wersja 1.1.0
 #   * Przystosowano wtyczkę do Qt6
 #   * Zaktualizowano README
