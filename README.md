@@ -142,6 +142,7 @@ If you wish to analyze your own data, you must download the derived layers for a
 #### Usage Example
 
 ![example_usage](docs/przyklad_uzycia.gif)
+
 ## Contact
 
 The plugin was developed by ****EnviroSolutions**. For questions or support, contact us at:** **[gis@envirosolutions.pl](mailto:gis@envirosolutions.pl)**.
